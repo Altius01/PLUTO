@@ -1,0 +1,12 @@
+USER           = sulmedira
+WORKING_DIR    = /home/sulmedira/alex_data/Diploma/PLUTO
+SYSTEM_NAME    = Linux
+NODE_NAME      = sulmedira
+RELEASE        = 6.11.3-arch1-1
+ARCH           = x86_64
+BYTE_ORDER     = little
+VERSION        = #1 SMP PREEMPT_DYNAMIC Thu, 10 Oct 2024 20:11:06 +0000
+PLUTO_DIR      = /home/sulmedira/alex_data/Diploma/PLUTO
+PLUTO_VERSION  = 2024)"
+C_COMPILER     = gcc
+MPI_C_COMPILER = mpicc
