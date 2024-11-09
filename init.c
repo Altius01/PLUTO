@@ -1,69 +1,153 @@
 /* ///////////////////////////////////////////////////////////////////// */
-/*! 
-  \file  
-  \brief Contains basic functions for problem initialization.
+/*!
+  \file
+  \brief Orszag-Tang MHD vortex.
 
-  The init.c file collects most of the user-supplied functions useful 
-  for problem configuration.
-  It is automatically searched for by the makefile.
+  The Orszag Tang vortex system describes a doubly periodic fluid
+  configuration leading to two-dimensional supersonic MHD turbulence.
+  Although an analytical solution is not known, its simple and reproducible
+  set of initial conditions has made it a widespread benchmark for
+   inter-scheme comparison.
+
+  The computational domain is the periodic box \f$[0,2\pi]^D\f$ where
+  \c D is the number of spatial dimensions.
+  In 2D, the initial condition is given by
+  \f[
+     \vec{v} = \left(-\sin y,\, \sin x, 0\right) \,,\qquad
+     \vec{B} = \left(-\sin y,\, \sin 2x, 0\right) \,,\qquad
+     \rho = 25/9\,,\qquad
+     p    = 5/3
+  \f]
+
+  This test problem does not have any input parameter.
+
+  A snapshot of the solution on a \c 512x512 grid is shown below.
+
+  \image html mhd_ot.02.jpg "Density at t=3.1 (configuration #02)."
 
   \author A. Mignone (andrea.mignone@unito.it)
-  \date   March 5, 2017
+  \date   April 21, 2021
+
+  \b References
+     - "Comparison of some Flux Corrected Transport and TVD numerical
+        schemes for hydrodynamic and magnetohydrodynamic problems",
+        Toth & Odstrcil, JCP (1996) 128, 82
+     - "High-order conservative finite difference GLM-MHD schemes for
+        cell-centered MHD", Mignone, Tzeferacos & Bodo, JCP (2010) 229, 5896.
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
+#ifndef ROTATE
+#define ROTATE -1
+#endif
+
+void Permute(double *v);
 /* ********************************************************************* */
-void Init (double *v, double x1, double x2, double x3)
-/*! 
- * The Init() function can be used to assign initial conditions as
- * as a function of spatial position.
- *
- * \param [out] v   a pointer to a vector of primitive variables
- * \param [in] x1   coordinate point in the 1st dimension
- * \param [in] x2   coordinate point in the 2nd dimension
- * \param [in] x3   coordinate point in the 3rdt dimension
- *
- * The meaning of x1, x2 and x3 depends on the geometry:
- * \f[ \begin{array}{cccl}
- *    x_1  & x_2    & x_3  & \mathrm{Geometry}    \\ \noalign{\medskip}
- *     \hline
- *    x    &   y    &  z   & \mathrm{Cartesian}   \\ \noalign{\medskip}
- *    R    &   z    &  -   & \mathrm{cylindrical} \\ \noalign{\medskip}
- *    R    & \phi   &  z   & \mathrm{polar}       \\ \noalign{\medskip}
- *    r    & \theta & \phi & \mathrm{spherical} 
- *    \end{array}
- *  \f]
- *
- * Variable names are accessed by means of an index v[nv], where
- * nv = RHO is density, nv = PRS is pressure, nv = (VX1, VX2, VX3) are
- * the three components of velocity, and so forth.
+void Init(double *us, double x1, double x2, double x3)
+/*
  *
  *********************************************************************** */
 {
-  v[RHO] = 1.0;
-  v[VX1] = 0.0;
-  v[VX2] = 0.0;
-  v[VX3] = 0.0;
-  #if HAVE_ENERGY
-  v[PRS] = 1.0;
-  #endif
-  v[TRC] = 0.0;
+  double x = x1, y = x2, z = x3;
 
-  #if PHYSICS == MHD || PHYSICS == RMHD
-  v[BX1] = 0.0;
-  v[BX2] = 0.0;
-  v[BX3] = 0.0;
+  us[VX1] = -sin(y);
+  us[VX2] = sin(x);
+  us[VX3] = 0.0;
 
-  v[AX1] = 0.0;
-  v[AX2] = 0.0;
-  v[AX3] = 0.0;
-  #endif
+#if PHYSICS == MHD
+  us[BX1] = -sin(y);
+  us[BX2] = sin(2.0 * x);
+  us[BX3] = 0.0;
+
+  us[AX1] = 0.0;
+  us[AX2] = 0.0;
+  us[AX3] = cos(y) + 0.5 * cos(2.0 * x);
+#endif
+
+  us[RHO] = 25. / 9.;
+#if EOS != ISOTHERMAL && EOS != BAROTROPIC
+  us[PRS] = 5.0 / 3.0;
+#endif
+  us[TRC] = (y > CONST_PI) * 1.0;
+
+#if DIMENSIONS == 3 && ROTATE == -1
+  {
+    double c0 = 0.8;
+    us[VX2] = -sin(z);
+    us[VX3] = sin(y);
+    us[VX1] = 0.0;
+
+#if PHYSICS == MHD
+    us[BX2] = c0 * (-2.0 * sin(2.0 * z) + sin(x));
+    us[BX3] = c0 * (sin(x) + sin(y));
+    us[BX1] = c0 * (sin(y) + sin(z));
+
+    us[AX2] = c0 * (cos(z) - cos(x));
+    us[AX3] = c0 * (-cos(y) + cos(x));
+    us[AX1] = c0 * (cos(y) + cos(2.0 * z));
+#endif
+
+    us[RHO] = 25. / 9.;
+    us[PRS] = 5.0 / 3.0;
+  }
+#endif
+
+  /* ----------------------------------------------
+     The rotate keyword is used to test invariance
+     under coordinate perumtations
+     ---------------------------------------------- */
+
+#if ROTATE == 1
+  us[VX2] = -sin(z);
+  us[VX3] = sin(y);
+  us[VX1] = 0.0;
+
+#if PHYSICS == MHD
+  us[BX2] = -sin(z);
+  us[BX3] = sin(2.0 * y);
+  us[BX1] = 0.0;
+
+  us[AX2] = 0.0;
+  us[AX3] = 0.0;
+  us[AX1] = cos(z) + 0.5 * cos(2.0 * y);
+#endif
+
+  us[RHO] = 25. / 9.;
+#if EOS != ISOTHERMAL && EOS != BAROTROPIC
+  us[PRS] = 5.0 / 3.0;
+#endif
+  us[TRC] = (z > CONST_PI) * 1.0;
+
+#endif
+
+#if ROTATE == 2
+  us[VX3] = -sin(x);
+  us[VX1] = sin(z);
+  us[VX2] = 0.0;
+
+#if PHYSICS == MHD
+  us[BX3] = -sin(x);
+  us[BX1] = sin(2.0 * z);
+  us[BX2] = 0.0;
+
+  us[AX3] = 0.0;
+  us[AX1] = 0.0;
+  us[AX2] = cos(x) + 0.5 * cos(2.0 * z);
+#endif
+
+  us[RHO] = 25. / 9.;
+#if EOS != ISOTHERMAL && EOS != BAROTROPIC
+  us[PRS] = 5.0 / 3.0;
+#endif
+  us[TRC] = (z > CONST_PI) * 1.0;
+
+#endif
 }
 
 /* ********************************************************************* */
-void InitDomain (Data *d, Grid *grid)
-/*! 
+void InitDomain(Data *d, Grid *grid)
+/*!
  * Assign initial condition by looping over the computational domain.
  * Called after the usual Init() function to assign initial conditions
  * on primitive variables.
@@ -71,181 +155,35 @@ void InitDomain (Data *d, Grid *grid)
  *
  *
  *********************************************************************** */
-{
+{}
+
+void Permute(double *vec) {
+  int n, np;
+  double vs[3];
+
+  for (n = 0; n < 3; n++)
+    vs[n] = vec[n];
+
+  for (n = 0; n < 3; n++) {
+    np = n + 1;
+    if (np == 3)
+      np = 0;
+    vec[n] = vs[np];
+  }
 }
 
 /* ********************************************************************* */
-void Analysis (const Data *d, Grid *grid)
-/*! 
- *  Perform runtime data analysis.
+void Analysis(const Data *d, Grid *grid)
+/*
  *
- * \param [in] d the PLUTO Data structure
- * \param [in] grid   pointer to array of Grid structures  
  *
  *********************************************************************** */
-{
-
-}
-#if PHYSICS == MHD
+{}
 /* ********************************************************************* */
-void BackgroundField (double x1, double x2, double x3, double *B0)
-/*!
- * Define the component of a static, curl-free background 
- * magnetic field.
+void UserDefBoundary(const Data *d, RBox *box, int side, Grid *grid)
+/*
  *
- * \param [in] x1  position in the 1st coordinate direction \f$x_1\f$
- * \param [in] x2  position in the 2nd coordinate direction \f$x_2\f$
- * \param [in] x3  position in the 3rd coordinate direction \f$x_3\f$
- * \param [out] B0 array containing the vector componens of the background
- *                 magnetic field
+ *
  *********************************************************************** */
-{
-   B0[0] = 0.0;
-   B0[1] = 0.0;
-   B0[2] = 0.0;
-}
-#endif
-
+{}
 /* ********************************************************************* */
-void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid) 
-/*! 
- *  Assign user-defined boundary conditions.
- *
- * \param [in,out] d  pointer to the PLUTO data structure containing
- *                    cell-centered primitive quantities (d->Vc) and 
- *                    staggered magnetic fields (d->Vs, when used) to 
- *                    be filled.
- * \param [in] box    pointer to a RBox structure containing the lower
- *                    and upper indices of the ghost zone-centers/nodes
- *                    or edges at which data values should be assigned.
- * \param [in] side   specifies the boundary side where ghost zones need
- *                    to be filled. It can assume the following 
- *                    pre-definite values: X1_BEG, X1_END,
- *                                         X2_BEG, X2_END, 
- *                                         X3_BEG, X3_END.
- *                    The special value side == 0 is used to control
- *                    a region inside the computational domain.
- * \param [in] grid  pointer to an array of Grid structures.
- *
- *********************************************************************** */
-{
-  int   i, j, k, nv;
-  double  *x1, *x2, *x3;
-
-  x1 = grid->x[IDIR];
-  x2 = grid->x[JDIR];
-  x3 = grid->x[KDIR];
-
-  if (side == 0) {    /* -- check solution inside domain -- */
-    DOM_LOOP(k,j,i){}
-  }
-
-  if (side == X1_BEG){  /* -- X1_BEG boundary -- */
-    if (box->vpos == CENTER) {
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X1FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X2FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X3FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }
-  }
-
-  if (side == X1_END){  /* -- X1_END boundary -- */
-    if (box->vpos == CENTER) {
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X1FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X2FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X3FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }
-  }
-
-  if (side == X2_BEG){  /* -- X2_BEG boundary -- */
-    if (box->vpos == CENTER) {
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X1FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X2FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X3FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }
-  }
-
-  if (side == X2_END){  /* -- X2_END boundary -- */
-    if (box->vpos == CENTER) {
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X1FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X2FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X3FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }
-  }
-
-  if (side == X3_BEG){  /* -- X3_BEG boundary -- */
-    if (box->vpos == CENTER) {
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X1FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X2FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X3FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }
-  }
-
-  if (side == X3_END){  /* -- X3_END boundary -- */
-    if (box->vpos == CENTER) {
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X1FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X2FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }else if (box->vpos == X3FACE){
-      BOX_LOOP(box,k,j,i){  }
-    }
-  }
-}
-
-#if BODY_FORCE != NO
-/* ********************************************************************* */
-void BodyForceVector(double *v, double *g, double x1, double x2, double x3)
-/*!
- * Prescribe the acceleration vector as a function of the coordinates
- * and the vector of primitive variables *v.
- *
- * \param [in] v  pointer to a cell-centered vector of primitive 
- *                variables
- * \param [out] g acceleration vector
- * \param [in] x1  position in the 1st coordinate direction \f$x_1\f$
- * \param [in] x2  position in the 2nd coordinate direction \f$x_2\f$
- * \param [in] x3  position in the 3rd coordinate direction \f$x_3\f$
- *
- *********************************************************************** */
-{
-  g[IDIR] = 0.0;
-  g[JDIR] = 0.0;
-  g[KDIR] = 0.0;
-}
-/* ********************************************************************* */
-double BodyForcePotential(double x1, double x2, double x3)
-/*!
- * Return the gravitational potential as function of the coordinates.
- *
- * \param [in] x1  position in the 1st coordinate direction \f$x_1\f$
- * \param [in] x2  position in the 2nd coordinate direction \f$x_2\f$
- * \param [in] x3  position in the 3rd coordinate direction \f$x_3\f$
- * 
- * \return The body force potential \f$ \Phi(x_1,x_2,x_3) \f$.
- *
- *********************************************************************** */
-{
-  return 0.0;
-}
-#endif

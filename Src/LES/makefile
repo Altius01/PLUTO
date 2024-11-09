@@ -1,3 +1,3 @@
 VPATH   += $(SRC)/LES
-OBJ     += les.o
+OBJ     += les_flux.o les_rhs.o les.o
 HEADERS += les.h

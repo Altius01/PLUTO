@@ -19,15 +19,13 @@
 #define RESISTIVITY NO
 #define HALL_MHD NO
 #define THERMAL_CONDUCTION NO
-#define VISCOSITY EXPLICIT
-#define LES EXPLICIT
+#define VISCOSITY NO
+#define LES NO
 #define RADIATION NO
 #define ROTATING_FRAME NO
 
 /* -- user-defined parameters (labels) -- */
 
 /* [Beg] user-defined constants (do not change this line) */
-
-#define CHECK_DIVB_CONDITION YES
 
 /* [End] user-defined constants (do not change this line) */

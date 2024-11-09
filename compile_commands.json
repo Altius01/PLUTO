@@ -10,26 +10,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/boundary.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/debug_tools.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/boundary.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/array_reconstruct.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/array_reconstruct.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/debug_tools.c"
   },
   {
     "arguments": [
@@ -58,102 +42,6 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/States/flatten.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/States/flatten.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/check_states.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/check_states.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/get_nghost.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/get_nghost.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/flag_shock.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/flag_shock.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/fluid_interface_boundary.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/fluid_interface_boundary.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/arrays.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/arrays.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
       "/home/sulmedira/alex_data/Diploma/PLUTO/Src/entropy_switch.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
@@ -170,10 +58,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "init.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/array_reconstruct.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/init.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/array_reconstruct.c"
   },
   {
     "arguments": [
@@ -186,10 +74,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/int_bound_reset.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/arrays.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/int_bound_reset.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/arrays.c"
   },
   {
     "arguments": [
@@ -234,10 +122,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/debug_tools.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/input_data.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/debug_tools.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/input_data.c"
   },
   {
     "arguments": [
@@ -250,10 +138,122 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/input_data.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/boundary.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/input_data.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/boundary.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-O3",
+      "-std=c17",
+      "-Wundef",
+      "-I.",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/States/flatten.c"
+    ],
+    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/States/flatten.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-O3",
+      "-std=c17",
+      "-Wundef",
+      "-I.",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
+      "init.c"
+    ],
+    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/init.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-O3",
+      "-std=c17",
+      "-Wundef",
+      "-I.",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/flag_shock.c"
+    ],
+    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/flag_shock.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-O3",
+      "-std=c17",
+      "-Wundef",
+      "-I.",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/fluid_interface_boundary.c"
+    ],
+    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/fluid_interface_boundary.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-O3",
+      "-std=c17",
+      "-Wundef",
+      "-I.",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/check_states.c"
+    ],
+    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/check_states.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-O3",
+      "-std=c17",
+      "-Wundef",
+      "-I.",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/get_nghost.c"
+    ],
+    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/get_nghost.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-O3",
+      "-std=c17",
+      "-Wundef",
+      "-I.",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/int_bound_reset.c"
+    ],
+    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/int_bound_reset.c"
   },
   {
     "arguments": [
@@ -282,22 +282,6 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/mappers3D.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/mappers3D.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
       "/home/sulmedira/alex_data/Diploma/PLUTO/Src/parse_file.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
@@ -314,10 +298,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/rbox.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/mappers3D.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/rbox.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/mappers3D.c"
   },
   {
     "arguments": [
@@ -350,6 +334,22 @@
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
     "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/reconstruct.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-O3",
+      "-std=c17",
+      "-Wundef",
+      "-I.",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/rbox.c"
+    ],
+    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/rbox.c"
   },
   {
     "arguments": [
@@ -506,10 +506,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/main.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/jet_domain.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/main.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/jet_domain.c"
   },
   {
     "arguments": [
@@ -522,10 +522,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/jet_domain.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/main.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/jet_domain.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/main.c"
   },
   {
     "arguments": [
@@ -698,10 +698,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/write_tab.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/write_data.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/write_tab.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/write_data.c"
   },
   {
     "arguments": [
@@ -714,10 +714,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/write_data.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/write_tab.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/write_data.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/write_tab.c"
   },
   {
     "arguments": [
@@ -1034,10 +1034,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/eigenv.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/fluxes.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/eigenv.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/fluxes.c"
   },
   {
     "arguments": [
@@ -1050,10 +1050,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/fluxes.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/eigenv.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/fluxes.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/eigenv.c"
   },
   {
     "arguments": [
@@ -1082,10 +1082,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/hll.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/hllc.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/hll.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/hllc.c"
   },
   {
     "arguments": [
@@ -1098,10 +1098,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/hllc.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/hll.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/hllc.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/hll.c"
   },
   {
     "arguments": [
@@ -1146,10 +1146,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/hll_speed.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/gforce.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/hll_speed.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/gforce.c"
   },
   {
     "arguments": [
@@ -1162,10 +1162,10 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/gforce.c"
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/hll_speed.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/gforce.c"
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/hll_speed.c"
   },
   {
     "arguments": [
@@ -1370,122 +1370,58 @@
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
       "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/LES/les_flux.c"
+    ],
+    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/LES/les_flux.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-O3",
+      "-std=c17",
+      "-Wundef",
+      "-I.",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/LES/les_rhs.c"
+    ],
+    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/LES/les_rhs.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-O3",
+      "-std=c17",
+      "-Wundef",
+      "-I.",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
+      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/LES/les.c"
+    ],
+    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
+    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/LES/les.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-O3",
+      "-std=c17",
+      "-Wundef",
+      "-I.",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
+      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
       "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/GLM/glm.c"
     ],
     "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
     "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/GLM/glm.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Hall_MHD/hall_ne.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Hall_MHD/hall_ne.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Hall_MHD/hall_whistler_speed.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Hall_MHD/hall_whistler_speed.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Hall_MHD/hall_flux.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Hall_MHD/hall_flux.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Resistivity/res_flux.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Resistivity/res_flux.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Resistivity/res_eta.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Resistivity/res_eta.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Resistivity/res_functions.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Resistivity/res_functions.c"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-O3",
-      "-std=c17",
-      "-Wundef",
-      "-I.",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD",
-      "-I/home/sulmedira/alex_data/Diploma/PLUTO/Src/EOS/Ideal",
-      "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Resistivity/res_rhs.c"
-    ],
-    "directory": "/home/sulmedira/alex_data/Diploma/PLUTO",
-    "file": "/home/sulmedira/alex_data/Diploma/PLUTO/Src/MHD/Resistivity/res_rhs.c"
   },
   {
     "arguments": [
