@@ -6,7 +6,7 @@
 
 pluto:                              # Default target
 
-ARCH         = Linux.gcc.defs
+ARCH         = Linux.mpicc.defs
 PLUTO_DIR    = /home/sulmedira/alex_data/Diploma/PLUTO
 SRC          = $(PLUTO_DIR)/Src
 INCLUDE_DIRS = -I. -I$(SRC)
@@ -41,6 +41,15 @@ include $(SRC)/Math_Tools/makefile
 #  Define macros by adding -D<name> where <name> has been
 #  set to TRUE in the system configuration file (.defs) 
 # ---------------------------------------------------------
+
+CC       = mpicc
+CFLAGS   = -c -O3 -std=c17  -Wundef
+LDFLAGS  = -lm
+
+PARALLEL = TRUE
+USE_HDF5 = FALSE
+USE_PNG  = FALSE
+
 
 ifeq ($(strip $(PARALLEL)), TRUE)
  CFLAGS += -I$(SRC)/Parallel -DPARALLEL
@@ -85,6 +94,9 @@ include $(SRC)/MHD/makefile
 include $(SRC)/Viscosity/makefile
 include $(SRC)/LES/makefile
 include $(SRC)/MHD/GLM/makefile
+include $(SRC)/MHD/Hall_MHD/makefile
+include $(SRC)/MHD/LES/makefile
+include $(SRC)/MHD/Resistivity/makefile
 include $(SRC)/EOS/Ideal/makefile
 
 # ---------------------------------------------------------

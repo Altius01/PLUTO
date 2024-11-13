@@ -103,7 +103,8 @@ enum PARABOLIC_OPERATORS {
   RES_OP,             /* RESISITIVITY  (3 operators since it's a tensor) */
   TC_OP = RES_OP + 3, /* THERMAL CONDUCTION */
   VISC_OP,            /* VISCOSITY */
-  LES_OP
+  LES_OP,
+  MHD_LES_OP
 };
 
 /* ********************************************************************* */
@@ -237,7 +238,7 @@ double ParabolicRHS(const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
 {
   int i, j, k, nv;
   int nbeg, nend;
-  int includeDir[3], include[8];
+  int includeDir[3], include[9];
   double scrh;
   double max_invDt_par = 0.0, invDt_par;
   static double ***C_dtp[MAX_OP], *dcoeff, **dcoeff_res;
@@ -276,6 +277,10 @@ double ParabolicRHS(const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
     if (LES) {
       C_dtp[LES_OP] = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
     }
+
+    if (MHD_LES) {
+      C_dtp[MHD_LES_OP] = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
+    }
   }
 
   for (nv = 0; nv < MAX_OP; nv++) {
@@ -295,6 +300,7 @@ double ParabolicRHS(const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
   include[TC_OP] = (THERMAL_CONDUCTION == timeStepping);
   include[VISC_OP] = (VISCOSITY == timeStepping);
   include[LES_OP] = (LES == timeStepping);
+  include[MHD_LES_OP] = (MHD_LES == timeStepping);
 
   includeDir[IDIR] = INCLUDE_IDIR;
   includeDir[JDIR] = INCLUDE_JDIR;
@@ -409,7 +415,6 @@ double ParabolicRHS(const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
 #endif /* VISCOSITY */
 
 #if LES
-
         if (include[LES_OP]) {
           LES_ViscousRHS(d, dU, dcoeff, aflux, dt, nbeg, nend, grid);
           if (g_intStage == 1) {
@@ -424,6 +429,22 @@ double ParabolicRHS(const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
           }
         }
 #endif /* LES */
+
+#if MHD_LES
+        if (include[MHD_LES_OP]) {
+          LES_ViscousRHS_MHD(d, dU, dcoeff, aflux, dt, nbeg, nend, grid);
+          if (g_intStage == 1) {
+            double *inv_dl = GetInverse_dl(grid);
+            IBOX_LOOP(domBox, i) {
+              double inv_dl2 = inv_dl[i] * inv_dl[i];
+              C_dtp[MHD_LES_OP][k][j][i] +=
+                  0.5 * (dcoeff[i - 1] + dcoeff[i]) * inv_dl2;
+              invDt_par = dcoeff[i] * inv_dl2;
+              max_invDt_par = MAX(max_invDt_par, invDt_par);
+            }
+          }
+        }
+#endif /* MHD_LES */
       }
     }
   } /* end if (includeDir(IDIR)) */
@@ -521,6 +542,22 @@ double ParabolicRHS(const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
           }
         }
 #endif /* LES */
+
+#if MHD_LES
+        if (include[MHD_LES_OP]) {
+          LES_ViscousRHS_MHD(d, dU, dcoeff, aflux, dt, nbeg, nend, grid);
+          if (g_intStage == 1) {
+            double *inv_dl = GetInverse_dl(grid);
+            JBOX_LOOP(domBox, j) {
+              double inv_dl2 = inv_dl[j] * inv_dl[j];
+              C_dtp[MHD_LES_OP][k][j][i] +=
+                  0.5 * (dcoeff[j - 1] + dcoeff[j]) * inv_dl2;
+              invDt_par = dcoeff[j] * inv_dl2;
+              max_invDt_par = MAX(max_invDt_par, invDt_par);
+            }
+          }
+        }
+#endif /* MHD_LES */
       }
     }
   } /* end JDIR   */
@@ -618,6 +655,22 @@ double ParabolicRHS(const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
           }
         }
 #endif /* LES */
+
+#if MHD_LES
+        if (include[MHD_LES_OP]) {
+          LES_ViscousRHS_MHD(d, dU, dcoeff, aflux, dt, nbeg, nend, grid);
+          if (g_intStage == 1) {
+            double *inv_dl = GetInverse_dl(grid);
+            KBOX_LOOP(domBox, k) {
+              double inv_dl2 = inv_dl[k] * inv_dl[k];
+              C_dtp[MHD_LES_OP][k][j][i] +=
+                  0.5 * (dcoeff[k - 1] + dcoeff[k]) * inv_dl2;
+              invDt_par = dcoeff[k] * inv_dl2;
+              max_invDt_par = MAX(max_invDt_par, invDt_par);
+            }
+          }
+        }
+#endif /* MHD_LES */
       }
     }
   } /* end KDIR */
@@ -665,6 +718,11 @@ double ParabolicRHS(const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
 #if LES
     if (include[LES_OP])
       scrh = MAX(scrh, C_dtp[LES_OP][k][j][i]);
+#endif
+
+#if MHD_LES
+    if (include[MHD_LES_OP])
+      scrh = MAX(scrh, C_dtp[MHD_LES_OP][k][j][i]);
 #endif
 
 #if INTERNAL_BOUNDARY == YES

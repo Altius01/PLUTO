@@ -626,7 +626,8 @@
    ******************************************************** */
 
 #if PHYSICS == HD || PHYSICS == MHD
-#define PARABOLIC_FLUX (RESISTIVITY | THERMAL_CONDUCTION | VISCOSITY | LES)
+#define PARABOLIC_FLUX                                                         \
+  (RESISTIVITY | THERMAL_CONDUCTION | VISCOSITY | LES | MHD_LES)
 #else
 #define PARABOLIC_FLUX NO
 #endif
@@ -784,6 +785,8 @@ typedef double ****Data_Arr;
 #define NSCL_LOOP(n) for ((n) = NFLX; (n) < (NFLX + NSCL); (n)++)
 
 #include "LES/les.h"
+
+#include "MHD/LES/mhd_les.h"
 
 #if DUST_FLUID == YES
 #include "Dust_Fluid/dust_fluid.h" /* Dust header file */
