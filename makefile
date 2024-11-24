@@ -42,15 +42,6 @@ include $(SRC)/Math_Tools/makefile
 #  set to TRUE in the system configuration file (.defs) 
 # ---------------------------------------------------------
 
-CC       = mpicc
-CFLAGS   = -c -O3 -std=c17  -Wundef
-LDFLAGS  = -lm
-
-PARALLEL = TRUE
-USE_HDF5 = FALSE
-USE_PNG  = FALSE
-
-
 ifeq ($(strip $(PARALLEL)), TRUE)
  CFLAGS += -I$(SRC)/Parallel -DPARALLEL
  include $(SRC)/Parallel/makefile
@@ -84,20 +75,17 @@ endif
 #   Additional_object_files_here   ! dont change this line
 # ---------------------------------------------------------
 
-OBJ += plm_states.o
+OBJ += mp5_states.o
 OBJ += vec_pot_diff.o
 OBJ += vec_pot_update.o
 OBJ += rk_step.o
 OBJ += update_stage.o
 OBJ += parabolic_update.o
 include $(SRC)/MHD/makefile
-include $(SRC)/Viscosity/makefile
 include $(SRC)/LES/makefile
 include $(SRC)/MHD/GLM/makefile
-include $(SRC)/MHD/Hall_MHD/makefile
 include $(SRC)/MHD/LES/makefile
-include $(SRC)/MHD/Resistivity/makefile
-include $(SRC)/EOS/Ideal/makefile
+include $(SRC)/EOS/Isothermal/makefile
 
 # ---------------------------------------------------------
 #    PLUTO target rule

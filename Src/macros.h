@@ -398,7 +398,7 @@ http://stackoverflow.com/questions/11303135/broadcast-message-for-all-processes-
 #if INCLUDE_JDIR
 #define AVERAGE_Y(q, k, j, i) (0.5 * (q[k][j][i] + q[k][j + 1][i]))
 #define AVERAGE_XY(q, k, j, i)                                                 \
-  (0.5 * (AVERAGE_X(q, k, j, i) + AVERAGE_X(q, k, j + 1, i)));
+  (0.5 * (AVERAGE_X(q, k, j, i) + AVERAGE_X(q, k, j + 1, i)))
 #else
 #define AVERAGE_Y(q, k, j, i) (q[k][0][i])
 #define AVERAGE_XY(q, k, j, i) AVERAGE_X(q, k, 0, i)

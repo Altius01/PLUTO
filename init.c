@@ -51,9 +51,11 @@ void Init(double *us, double x1, double x2, double x3)
 {
   double x = x1, y = x2, z = x3;
 
-  us[VX1] = -sin(y);
-  us[VX2] = sin(x);
-  us[VX3] = 0.0;
+  const double epsilon_p = 0.2;
+
+  us[VX1] = -sin(y) - epsilon_p * sin(2.0 * y) * sin(2.0 * z);
+  us[VX2] = sin(x) + epsilon_p * sin(2.0 * x) * sin(2.0 * z);
+  us[VX3] = epsilon_p * sin(2.0 * z);
 
 #if PHYSICS == MHD
   us[BX1] = -sin(y);
@@ -89,7 +91,7 @@ void Init(double *us, double x1, double x2, double x3)
 #endif
 
     us[RHO] = 25. / 9.;
-    us[PRS] = 5.0 / 3.0;
+    // us[PRS] = 5.0 / 3.0;
   }
 #endif
 
@@ -186,4 +188,3 @@ void UserDefBoundary(const Data *d, RBox *box, int side, Grid *grid)
  *
  *********************************************************************** */
 {}
-/* ********************************************************************* */

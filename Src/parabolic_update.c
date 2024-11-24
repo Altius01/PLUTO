@@ -313,7 +313,7 @@ double ParabolicRHS(const Data *d, Data_Arr dU, RBox *domBox, double **aflux,
      -------------------------------------------------------- */
 
 #if PHYSICS == MHD
-  if (include[RES_OP] || include[AMB_DIFF_OP])
+  if (include[RES_OP] || include[AMB_DIFF_OP] || include[MHD_LES_OP])
     GetCurrent(d, grid);
 #endif
 

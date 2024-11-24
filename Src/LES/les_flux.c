@@ -4,6 +4,20 @@
 #define LES_FMIN 0.5 /* blah blah  */
 #endif
 
+static double Cs = 0.1, Ys = 0.1;
+
+double get_LES_Cs() { return Cs; }
+
+double get_LES_Ys() { return Ys; }
+
+void set_LES_Cs(double cs) { Cs = cs > 0 ? cs : 0; }
+
+void set_LES_Ys(double ys) { Ys = ys > 0 ? ys : 0; }
+
+#define ITOT_LOOP_FILTERED(i) for ((i) = 0; (i) < NX1_TOT; (i) += 2)
+#define JTOT_LOOP_FILTERED(j) for ((j) = 0; (j) < NX2_TOT; (j) += 2)
+#define KTOT_LOOP_FILTERED(k) for ((k) = 0; (k) < NX3_TOT; (k) += 2)
+
 /* ********************************************************************* */
 void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
                         double *dcoeff, int beg, int end, Grid *grid)
@@ -32,6 +46,8 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
   double *x2r = grid->xr[JDIR];
   double *x3r = grid->xr[KDIR];
   double dxVx, dxVy, dxVz, dyVx, dyVy, dyVz, dzVx, dzVy, dzVz;
+  double dxBx, dxBy, dxBz, dyBx, dyBy, dyBz, dzBx, dzBy, dzBz;
+
   double S, Sxx, Syy, Szz, Sxy, Sxz, Syz;
   double divV, divr, scrh;
   double wx, wy, wz, qx, qy, qz;
@@ -41,11 +57,25 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
   double Cs = 0.1, Csdl2, dH;
   double Prandtl = 0.71;
 
-  static double ***H;
+  // static double ***H;
+
+  static double Lu_xx, Lu_yy, Lu_zz, Lu_xy, Lu_xz, Lu_yz;
+  static double Mu_xx, Mu_xy, Mu_xz, Mu_yx, Mu_yy, Mu_yz, Mu_zx, Mu_zy, Mu_zz;
+
+  static double ALPHA_Y;
+
+  LES_alpha_ctx *ctx = les_alpha_create();
 
   double ***Vx = d->Vc[VX1];
   double ***Vy = d->Vc[VX2];
   double ***Vz = d->Vc[VX3];
+
+#if PHYSICS == MHD || PHYSICS == RMHD
+  double ***Bx = d->Vc[BX1];
+  double ***By = d->Vc[BX2];
+  double ***Bz = d->Vc[BX3];
+#endif
+
   double ***rho, ***pr;
   double *r, *th, r_1, dr, s_1, tan_1;
   double vc[NVAR], vi[NVAR];        /* Center and interface values */
@@ -65,16 +95,17 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
   dyVx = dyVy = dyVz = 0.0;
   dzVx = dzVy = dzVz = 0.0;
 
-  if (H == NULL) {
-    H = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
-  }
+  // if (H == NULL) {
+  // H = ARRAY_3D(NX3_TOT, NX2_TOT, NX1_TOT, double);
+  // }
 
   dx = grid->dx[IDIR][IBEG];
   dy = grid->dx[JDIR][JBEG];
   dz = grid->dx[KDIR][KBEG];
 
   rho = d->Vc[RHO];
-  pr = d->Vc[PRS];
+
+  // pr = d->Vc[PRS];
 
   Csdl2 = Cs * Cs * pow(dx * dy * dz, 2.0 / 3.0);
 
@@ -84,20 +115,287 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
        5. Compute Specific enthalpy
        ---------------------------------------------- */
 
-  int i_h, j_h, k_h;
-  KTOT_LOOP(k_h) {
-    JTOT_LOOP(j_h) {
-      ITOT_LOOP(i_h) {
-        S = Vx[k_h][j_h][i_h] * Vx[k_h][j_h][i_h] +
-            Vy[k_h][j_h][i_h] * Vy[k_h][j_h][i_h] +
-            Vz[k_h][j_h][i_h] * Vz[k_h][j_h][i_h];
+  init_les_alpha_ctx(ctx, d, grid);
 
-        H[k_h][j_h][i_h] =
-            pr[k_h][j_h][i_h] * g_gamma / (g_gamma - 1.0) / rho[k_h][j_h][i_h] +
-            0.5 * S;
+  int i_h, j_h, k_h;
+
+  double Cs_averaged_numerator = 0, Cs_averaged_denominator = 0;
+  double Ys_averaged_numerator = 0, Ys_averaged_denominator = 0;
+
+  KTOT_LOOP_FILTERED(k_h) {
+    JTOT_LOOP_FILTERED(j_h) {
+      ITOT_LOOP_FILTERED(i_h) {
+        double divider = 1.0;
+
+        double rho_f = 0, rhovx_f = 0, rhovy_f = 0, rhovz_f = 0, Bx_f = 0,
+               By_f = 0, Bz_f = 0;
+        double BxBx_f = 0, ByBy_f = 0, BzBz_f = 0, BxBy_f = 0, BxBz_f = 0,
+               ByBz_f = 0;
+
+        double divV_f = 0, Sxx_f = 0, Sxy_f = 0, Sxz_f = 0, Syy_f = 0,
+               Syz_f = 0, Szz_f = 0;
+
+        double Lu_Vxx_f = 0, Lu_Vxy_f = 0, Lu_Vxz_f = 0, Lu_Vyy_f = 0,
+               Lu_Vyz_f = 0, Lu_Vzz_f = 0;
+        double Mu_Sxx_f = 0, Mu_Sxy_f = 0, Mu_Sxz_f = 0, Mu_Syy_f = 0,
+               Mu_Syx_f = 0, Mu_Syz_f = 0, Mu_Szx_f = 0, Mu_Szy_f = 0,
+               Mu_Szz_f = 0;
+
+        double A_f = 0, Axx_f = 0, Axy_f = 0, Axz_f = 0, Ayy_f = 0, Ayx_f = 0,
+               Ayz_f = 0, Azx_f = 0, Azy_f = 0, Azz_f = 0;
+
+        double Y_f = 0;
+
+        int delta_i = 0, delta_j = 0, delta_k = 0;
+
+#if INCLUDE_IDIR
+        delta_i = 1;
+#endif
+#if INCLUDE_JDIR
+        delta_j = 1;
+#endif
+#if INCLUDE_KDIR
+        delta_k = 1;
+#endif
+
+        for (int i_shift = i_h; i_shift <= i_h + delta_i; i_shift++) {
+          for (int j_shift = j_h; j_shift <= j_h + delta_j; j_shift++) {
+            for (int k_shift = k_h; k_shift <= k_h + delta_k; k_shift++) {
+              double rho_ = rho[k_shift][j_shift][i_shift];
+              double Vx_ = Vx[k_shift][j_shift][i_shift];
+              double Vy_ = Vy[k_shift][j_shift][i_shift];
+              double Vz_ = Vz[k_shift][j_shift][i_shift];
+
+              double local_volume = dx1[i_shift] * dx2[j_shift] * dx3[k_shift];
+
+              rho_f += (rho_)*local_volume;
+
+              rhovx_f += (rho_ * Vx_) * local_volume;
+              rhovy_f += (rho_ * Vy_) * local_volume;
+              rhovz_f += (rho_ * Vz_) * local_volume;
+
+#if PHYSICS == MHD || PHYSICS == RMHD
+              double Bx_ = Bx[k_shift][j_shift][i_shift];
+              double By_ = By[k_shift][j_shift][i_shift];
+              double Bz_ = Bz[k_shift][j_shift][i_shift];
+
+              Bx_f += (Bx_)*local_volume;
+              By_f += (By_)*local_volume;
+              Bz_f += (Bz_)*local_volume;
+
+              BxBx_f += (Bx_ * Bx_) * local_volume;
+              ByBy_f += (By_ * By_) * local_volume;
+              BzBz_f += (Bz_ * Bz_) * local_volume;
+              BxBy_f += (Bx_ * By_) * local_volume;
+              BxBz_f += (Bx_ * Bz_) * local_volume;
+              ByBz_f += (By_ * Bz_) * local_volume;
+#endif
+
+              Lu_Vxx_f += (rho_ * Vx_ * Vx_) * local_volume;
+              Lu_Vxy_f += (rho_ * Vx_ * Vy_) * local_volume;
+              Lu_Vxz_f += (rho_ * Vx_ * Vz_) * local_volume;
+              Lu_Vyy_f += (rho_ * Vy_ * Vy_) * local_volume;
+              Lu_Vyz_f += (rho_ * Vy_ * Vz_) * local_volume;
+              Lu_Vzz_f += (rho_ * Vz_ * Vz_) * local_volume;
+
+              NVAR_LOOP(nv) {
+                vi[nv] = 0.5 * (d->Vc[nv][k][j][i] + d->Vc[nv][k][j][i + 1]);
+                vc[nv] = d->Vc[nv][k][j][i];
+              }
+
+              update_les_alpha_ctx(ctx, vi, grid, i_shift, j_shift, k_shift);
+
+              Sxx_f += rho_ * les_alpha_get_Sxx(ctx) * local_volume;
+              Sxy_f += rho_ * les_alpha_get_Sxy(ctx) * local_volume;
+              Sxz_f += rho_ * les_alpha_get_Sxz(ctx) * local_volume;
+              Syy_f += rho_ * les_alpha_get_Syy(ctx) * local_volume;
+              Syz_f += rho_ * les_alpha_get_Syz(ctx) * local_volume;
+              Szz_f += rho_ * les_alpha_get_Szz(ctx) * local_volume;
+              divV_f += rho_f * les_alpha_get_divV(ctx) * local_volume;
+
+              A_f += LES_Alpha(ctx, i_shift, j_shift, k_shift) * local_volume;
+
+              Axx_f +=
+                  LES_Alpha_xx(ctx, i_shift, j_shift, k_shift) * local_volume;
+              Axy_f +=
+                  LES_Alpha_xy(ctx, i_shift, j_shift, k_shift) * local_volume;
+              Axz_f +=
+                  LES_Alpha_xz(ctx, i_shift, j_shift, k_shift) * local_volume;
+
+              Ayx_f +=
+                  LES_Alpha_yx(ctx, i_shift, j_shift, k_shift) * local_volume;
+              Ayy_f +=
+                  LES_Alpha_yy(ctx, i_shift, j_shift, k_shift) * local_volume;
+              Ayz_f +=
+                  LES_Alpha_yz(ctx, i_shift, j_shift, k_shift) * local_volume;
+
+              Azx_f +=
+                  LES_Alpha_zx(ctx, i_shift, j_shift, k_shift) * local_volume;
+              Azy_f +=
+                  LES_Alpha_zy(ctx, i_shift, j_shift, k_shift) * local_volume;
+              Azz_f +=
+                  LES_Alpha_zz(ctx, i_shift, j_shift, k_shift) * local_volume;
+
+              Y_f += LES_Alpha(ctx, i_shift, j_shift, k_shift) *
+                     (les_alpha_get_divV(ctx)) * local_volume;
+
+              Mu_Sxx_f +=
+                  LES_Alpha_xx(ctx, i_shift, j_shift, k_shift) *
+                  (les_alpha_get_Sxx(ctx) - c13 * les_alpha_get_divV(ctx)) *
+                  local_volume;
+              Mu_Sxy_f += LES_Alpha_xy(ctx, i_shift, j_shift, k_shift) *
+                          (les_alpha_get_Sxy(ctx)) * local_volume;
+              Mu_Sxz_f += LES_Alpha_xz(ctx, i_shift, j_shift, k_shift) *
+                          (les_alpha_get_Sxz(ctx)) * local_volume;
+
+              Mu_Syx_f += LES_Alpha_yx(ctx, i_shift, j_shift, k_shift) *
+                          (les_alpha_get_Sxy(ctx)) * local_volume;
+              Mu_Syy_f +=
+                  LES_Alpha_yy(ctx, i_shift, j_shift, k_shift) *
+                  (les_alpha_get_Syy(ctx) - c13 * les_alpha_get_divV(ctx)) *
+                  local_volume;
+              Mu_Syz_f += LES_Alpha_yz(ctx, i_shift, j_shift, k_shift) *
+                          (les_alpha_get_Syz(ctx)) * local_volume;
+
+              Mu_Szx_f += LES_Alpha_zx(ctx, i_shift, j_shift, k_shift) *
+                          (les_alpha_get_Sxz(ctx)) * local_volume;
+              Mu_Szy_f += LES_Alpha_zy(ctx, i_shift, j_shift, k_shift) *
+                          (les_alpha_get_Syz(ctx)) * local_volume;
+              Mu_Szz_f +=
+                  LES_Alpha_zz(ctx, i_shift, j_shift, k_shift) *
+                  (les_alpha_get_Szz(ctx) - c13 * les_alpha_get_divV(ctx)) *
+                  local_volume;
+
+              divider += local_volume;
+            }
+          }
+        }
+
+        divider = 1.0 / divider;
+
+        rho_f *= divider;
+        double inv_rho_f = 1.0 / rho_f;
+
+        rhovx_f *= divider;
+        rhovy_f *= divider;
+        rhovz_f *= divider;
+
+        Sxx_f *= inv_rho_f;
+        Sxy_f *= inv_rho_f;
+        Sxz_f *= inv_rho_f;
+        Syy_f *= inv_rho_f;
+        Syz_f *= inv_rho_f;
+        Szz_f *= inv_rho_f;
+        divV_f *= inv_rho_f;
+
+#if PHYSICS == MHD || PHYSICS == RMHD
+        Bx_f *= divider;
+        By_f *= divider;
+        Bz_f *= divider;
+
+        BxBx_f *= divider;
+        ByBy_f *= divider;
+        BzBz_f *= divider;
+        BxBy_f *= divider;
+        BxBz_f *= divider;
+        ByBz_f *= divider;
+#endif
+
+        Lu_Vxx_f *= divider;
+        Lu_Vxy_f *= divider;
+        Lu_Vxz_f *= divider;
+        Lu_Vyy_f *= divider;
+        Lu_Vyz_f *= divider;
+        Lu_Vzz_f *= divider;
+
+        A_f *= divider;
+        Axx_f *= divider;
+        Axy_f *= divider;
+        Axz_f *= divider;
+        Ayx_f *= divider;
+        Ayy_f *= divider;
+        Ayz_f *= divider;
+        Azx_f *= divider;
+        Azy_f *= divider;
+        Azz_f *= divider;
+
+        Y_f *= divider;
+
+        Mu_Sxx_f *= divider;
+        Mu_Sxy_f *= divider;
+        Mu_Sxz_f *= divider;
+        Mu_Syx_f *= divider;
+        Mu_Syy_f *= divider;
+        Mu_Syz_f *= divider;
+        Mu_Szx_f *= divider;
+        Mu_Szy_f *= divider;
+        Mu_Szz_f *= divider;
+
+#if PHYSICS == MHD || PHYSICS == RMHD
+        Lu_xx =
+            Lu_Vxx_f - rhovx_f * rhovx_f * inv_rho_f - (BxBx_f - Bx_f * Bx_f);
+
+        Lu_yy =
+            Lu_Vyy_f - rhovy_f * rhovy_f * inv_rho_f - (ByBy_f - By_f * By_f);
+
+        Lu_zz =
+            Lu_Vzz_f - rhovz_f * rhovz_f * inv_rho_f - (BzBz_f - Bz_f * Bz_f);
+
+        Lu_xy =
+            Lu_Vxy_f - rhovx_f * rhovy_f * inv_rho_f - (BxBy_f - Bx_f * By_f);
+
+        Lu_xz =
+            Lu_Vxz_f - rhovx_f * rhovz_f * inv_rho_f - (BxBz_f - Bx_f * Bz_f);
+
+        Lu_yz =
+            Lu_Vyz_f - rhovy_f * rhovz_f * inv_rho_f - (ByBz_f - By_f * Bz_f);
+#else
+        Lu_xx = Lu_Vxx_f - rhovx_f * rhovx_f * inv_rho_f;
+        Lu_yy = Lu_Vyy_f - rhovy_f * rhovy_f * inv_rho_f;
+        Lu_zz = Lu_Vzz_f - rhovz_f * rhovz_f * inv_rho_f;
+        Lu_xy = Lu_Vxy_f - rhovx_f * rhovy_f * inv_rho_f;
+        Lu_xz = Lu_Vxz_f - rhovx_f * rhovz_f * inv_rho_f;
+        Lu_yz = Lu_Vyz_f - rhovy_f * rhovz_f * inv_rho_f;
+#endif
+
+        Mu_xx = Axx_f * (Sxx_f - c13 * divV_f) - Mu_Sxx_f;
+        Mu_xy = Axy_f * (Sxy_f)-Mu_Sxy_f;
+        Mu_xz = Axz_f * (Sxz_f)-Mu_Sxz_f;
+
+        Mu_yx = Ayx_f * (Sxy_f)-Mu_Syx_f;
+        Mu_yy = Ayy_f * (Syy_f - c13 * divV_f) - Mu_Syy_f;
+        Mu_yz = Ayz_f * (Syz_f)-Mu_Syz_f;
+
+        Mu_zx = Azx_f * (Sxz_f)-Mu_Szx_f;
+        Mu_zy = Azy_f * (Syz_f)-Mu_Szy_f;
+        Mu_zz = Azz_f * (Szz_f - c13 * divV_f) - Mu_Szz_f;
+
+        ALPHA_Y = A_f * divV_f - Y_f;
+
+        double local_volume = dx1[i_h] * dx2[j_h] * dx3[k_h];
+
+        Cs_averaged_numerator +=
+            (Lu_xx * Mu_xx + Lu_xy * Mu_xy + Lu_xz * Mu_xz + Lu_xy * Mu_yx +
+             Lu_yy * Mu_yy + Lu_yz * Mu_yz + Lu_xz * Mu_zx + Lu_yz * Mu_zy +
+             Lu_zz * Mu_zz) *
+            local_volume;
+
+        Cs_averaged_denominator +=
+            (Mu_xx * Mu_xx + Mu_xy * Mu_xy + Mu_xz * Mu_xz + Mu_yx * Mu_yx +
+             Mu_yy * Mu_yy + Mu_yz * Mu_yz + Mu_zx * Mu_zx + Mu_zy * Mu_zy +
+             Mu_zz * Mu_zz) *
+            local_volume;
+
+        Ys_averaged_numerator +=
+            (Lu_xx * Lu_xx + Lu_yy * Lu_yy + Lu_zz * Lu_zz) * local_volume;
+
+        Ys_averaged_denominator += (A_f * divV_f - Y_f) * local_volume;
       }
     }
   }
+
+  set_LES_Cs(Cs_averaged_numerator / Cs_averaged_denominator);
+  set_LES_Ys(Ys_averaged_numerator / Ys_averaged_denominator);
 
   if (g_dir == IDIR) {
 
@@ -119,27 +417,7 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
       }
       /* -- 1b. Compute viscosity and velocity derivatives -- */
 
-#if INCLUDE_IDIR
-      dxVx = FDIFF_X1(Vx, k, j, i) * inv_dx1;
-      dxVy = FDIFF_X1(Vy, k, j, i) * inv_dx1;
-      dxVz = FDIFF_X1(Vz, k, j, i) * inv_dx1;
-#endif
-#if INCLUDE_JDIR
-      dyVx =
-          0.5 * (CDIFF_X2(Vx, k, j, i) + CDIFF_X2(Vx, k, j, i + 1)) * inv_dx2;
-      dyVy =
-          0.5 * (CDIFF_X2(Vy, k, j, i) + CDIFF_X2(Vy, k, j, i + 1)) * inv_dx2;
-      dyVz =
-          0.5 * (CDIFF_X2(Vz, k, j, i) + CDIFF_X2(Vz, k, j, i + 1)) * inv_dx2;
-#endif
-#if INCLUDE_KDIR
-      dzVx =
-          0.5 * (CDIFF_X3(Vx, k, j, i) + CDIFF_X3(Vx, k, j, i + 1)) * inv_dx3;
-      dzVy =
-          0.5 * (CDIFF_X3(Vy, k, j, i) + CDIFF_X3(Vy, k, j, i + 1)) * inv_dx3;
-      dzVz =
-          0.5 * (CDIFF_X3(Vz, k, j, i) + CDIFF_X3(Vz, k, j, i + 1)) * inv_dx3;
-#endif
+      update_les_alpha_ctx(ctx, vi, grid, i, j, k);
 
       /* ------------------------------------------
          1c. Compute stress tensor components and
@@ -149,37 +427,21 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
 
 #if GEOMETRY == CARTESIAN
 
-      Sxx = 0.5 * (dxVx + dxVx);
-      Sxy = 0.5 * (dyVx + dxVy);
-      Sxz = 0.5 * (dzVx + dxVz);
-
-      Syy = 0.5 * (dyVy + dyVy);
-      Syz = 0.5 * (dzVy + dyVz);
-      Szz = 0.5 * (dzVz + dzVz);
-
-      S = Sxx * Sxx + Syy * Syy + Szz * Szz +
-          2.0 * (Sxy * Sxy + Sxz * Sxz + Syz * Syz);
-      S = sqrt(2.0 * S);
-
-      divV = DIM_EXPAND(dxVx, +dyVy, +dzVz);
-
-      nu_t = Csdl2 * S;
-      nu_max = MAX(nu_max, nu_t);
+      nu_max = MAX(nu_max,
+                   MAX(les_alpha_get_nut(ctx), les_alpha_get_nut_trace(ctx)));
       dcoeff[i] = nu_t;
 
-      scrh = 2.0 * vi[RHO] * nu_t;
-
-      fmx = scrh * (Sxx - divV / 3.0);
-      fmy = scrh * Sxy;
-      fmz = scrh * Sxz;
-
-      dH = (H[k][j][i + 1] - H[k][j][i]);
-      fe = vi[RHO] * nu_t / Prandtl * dH / dx;
+      fmx = -2.0 * LES_Alpha_xx(ctx, i, j, k) *
+                (les_alpha_get_Sxx(ctx) - c13 * les_alpha_get_divV(ctx)) +
+            2.0 * c13 * LES_Alpha(ctx, i, j, k) * les_alpha_get_divV(ctx);
+      fmy = -2.0 * LES_Alpha_yx(ctx, i, j, k) * les_alpha_get_Sxy(ctx);
+      fmz = -2.0 * LES_Alpha_zx(ctx, i, j, k) * les_alpha_get_Sxz(ctx);
+      // fmz = -2.0 * LES_Alpha_zx(ctx, i, j, k) * les_alpha_get_Sxz(ctx);
 
       ViS[i][MX1] = 0.0;
       ViS[i][MX2] = 0.0;
       ViS[i][MX3] = 0.0;
-      ViS[i][ENG] = 0.0;
+      // ViS[i][ENG] = 0.0;
 #endif /* -- end #if GEOMETRY -- */
 
       /* ------------------------------------------
@@ -190,7 +452,7 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
       ViF[i][MX2] = fmy;
       ViF[i][MX3] = fmz;
 
-      ViF[i][ENG] = 0;
+      // ViF[i][ENG] = 0;
 #if HAVE_ENERGY
       ViF[i][ENG] = fe;
 #endif
@@ -223,27 +485,7 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
       }
       /* -- 2b. Compute viscosity and velocity derivatives -- */
 
-#if INCLUDE_IDIR
-      dxVx =
-          0.5 * (CDIFF_X1(Vx, k, j, i) + CDIFF_X1(Vx, k, j + 1, i)) * inv_dx1;
-      dxVy =
-          0.5 * (CDIFF_X1(Vy, k, j, i) + CDIFF_X1(Vy, k, j + 1, i)) * inv_dx1;
-      dxVz =
-          0.5 * (CDIFF_X1(Vz, k, j, i) + CDIFF_X1(Vz, k, j + 1, i)) * inv_dx1;
-#endif
-#if INCLUDE_JDIR
-      dyVx = FDIFF_X2(Vx, k, j, i) * inv_dx2;
-      dyVy = FDIFF_X2(Vy, k, j, i) * inv_dx2;
-      dyVz = FDIFF_X2(Vz, k, j, i) * inv_dx2;
-#endif
-#if INCLUDE_KDIR
-      dzVx =
-          0.5 * (CDIFF_X3(Vx, k, j, i) + CDIFF_X3(Vx, k, j + 1, i)) * inv_dx3;
-      dzVy =
-          0.5 * (CDIFF_X3(Vy, k, j, i) + CDIFF_X3(Vy, k, j + 1, i)) * inv_dx3;
-      dzVz =
-          0.5 * (CDIFF_X3(Vz, k, j, i) + CDIFF_X3(Vz, k, j + 1, i)) * inv_dx3;
-#endif
+      update_les_alpha_ctx(ctx, vi, grid, i, j, k);
 
       /* ------------------------------------------
          2c. Compute stress tensor components and
@@ -252,36 +494,22 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
          ------------------------------------------ */
 
 #if GEOMETRY == CARTESIAN
-      divV = DIM_EXPAND(dxVx, +dyVy, +dzVz);
-
-      Sxx = 0.5 * (dxVx + dxVx);
-      Sxy = 0.5 * (dyVx + dxVy);
-      Sxz = 0.5 * (dzVx + dxVz);
-
-      Syy = 0.5 * (dyVy + dyVy);
-      Syz = 0.5 * (dzVy + dyVz);
-      Szz = 0.5 * (dzVz + dzVz);
-
-      S = Sxx * Sxx + Syy * Syy + Szz * Szz +
-          2.0 * (Sxy * Sxy + Sxz * Sxz + Syz * Syz);
-      S = sqrt(2.0 * S);
-      nu_t = Csdl2 * S;
-      nu_max = MAX(nu_max, nu_t);
+      nu_max = MAX(nu_max,
+                   MAX(les_alpha_get_nut(ctx), les_alpha_get_nut_trace(ctx)));
       dcoeff[j] = nu_t;
 
       scrh = 2.0 * vi[RHO] * nu_t;
 
-      fmx = scrh * Sxy;
-      fmy = scrh * (Syy - divV / 3.0);
-      fmz = scrh * Syz;
-
-      dH = (H[k][j + 1][i] - H[k][j][i]);
-      fe = vi[RHO] * nu_t / Prandtl * dH / dy;
+      fmx = -2.0 * LES_Alpha_xy(ctx, i, j, k) * les_alpha_get_Sxy(ctx);
+      fmy = -2.0 * LES_Alpha_yy(ctx, i, j, k) *
+                (les_alpha_get_Syy(ctx) - c13 * les_alpha_get_divV(ctx)) +
+            2.0 * c13 * LES_Alpha(ctx, i, j, k) * les_alpha_get_divV(ctx);
+      fmz = -2.0 * LES_Alpha_zy(ctx, i, j, k) * les_alpha_get_Syz(ctx);
 
       ViS[j][MX1] = 0.0;
       ViS[j][MX2] = 0.0;
       ViS[j][MX3] = 0.0;
-      ViS[j][ENG] = 0.0;
+      // ViS[j][ENG] = 0.0;
 #endif /* -- GEOMETRY -- */
 
       /* ------------------------------------------
@@ -292,7 +520,7 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
       ViF[j][MX2] = fmy;
       ViF[j][MX3] = fmz;
 
-      ViF[j][ENG] = 0;
+      // ViF[j][ENG] = 0;
 #if HAVE_ENERGY
       ViF[j][ENG] = fe;
 #endif
@@ -306,7 +534,6 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
     // printf("y sweep: VIF[MX2] = %g\n", ViF[i][MX2]);
     // printf("y sweep: VIF[MX3] = %g\n", ViF[i][MX3]);
     // printf("y sweep: VIF[ENG] = %g\n", ViF[i][ENG]);
-
   } else if (g_dir == KDIR) {
 
     /* ------------------------------------------------------
@@ -327,27 +554,7 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
       }
       /* -- 3b. Compute viscosity and velocity derivatives -- */
 
-#if INCLUDE_IDIR
-      dxVx =
-          0.5 * (CDIFF_X1(Vx, k, j, i) + CDIFF_X1(Vx, k + 1, j, i)) * inv_dx1;
-      dxVy =
-          0.5 * (CDIFF_X1(Vy, k, j, i) + CDIFF_X1(Vy, k + 1, j, i)) * inv_dx1;
-      dxVz =
-          0.5 * (CDIFF_X1(Vz, k, j, i) + CDIFF_X1(Vz, k + 1, j, i)) * inv_dx1;
-#endif
-#if INCLUDE_JDIR
-      dyVx =
-          0.5 * (CDIFF_X2(Vx, k, j, i) + CDIFF_X2(Vx, k + 1, j, i)) * inv_dx2;
-      dyVy =
-          0.5 * (CDIFF_X2(Vy, k, j, i) + CDIFF_X2(Vy, k + 1, j, i)) * inv_dx2;
-      dyVz =
-          0.5 * (CDIFF_X2(Vz, k, j, i) + CDIFF_X2(Vz, k + 1, j, i)) * inv_dx2;
-#endif
-#if INCLUDE_KDIR
-      dzVx = FDIFF_X3(Vx, k, j, i) * inv_dx3;
-      dzVy = FDIFF_X3(Vy, k, j, i) * inv_dx3;
-      dzVz = FDIFF_X3(Vz, k, j, i) * inv_dx3;
-#endif
+      update_les_alpha_ctx(ctx, vi, grid, i, j, k);
 
       /* ------------------------------------------
          3c. Compute stress tensor components and
@@ -356,37 +563,22 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
          ------------------------------------------ */
 
 #if GEOMETRY == CARTESIAN
-
-      divV = dxVx + dyVy + dzVz;
-
-      Sxx = 0.5 * (dxVx + dxVx);
-      Sxy = 0.5 * (dyVx + dxVy);
-      Sxz = 0.5 * (dzVx + dxVz);
-
-      Syy = 0.5 * (dyVy + dyVy);
-      Syz = 0.5 * (dzVy + dyVz);
-      Szz = 0.5 * (dzVz + dzVz);
-
-      S = Sxx * Sxx + Syy * Syy + Szz * Szz +
-          2.0 * (Sxy * Sxy + Sxz * Sxz + Syz * Syz);
-      S = sqrt(2.0 * S);
-      nu_t = Csdl2 * S;
-      nu_max = MAX(nu_max, nu_t);
+      nu_max = MAX(nu_max,
+                   MAX(les_alpha_get_nut(ctx), les_alpha_get_nut_trace(ctx)));
       dcoeff[k] = nu_t;
 
       scrh = 2.0 * vi[RHO] * nu_t;
 
-      fmx = scrh * Sxz;
-      fmy = scrh * Syz;
-      fmz = scrh * (Szz - divV / 3.0);
-
-      dH = (H[k + 1][j][i] - H[k][j][i]);
-      fe = nu_t / Prandtl * dH / dz;
+      fmx = -2.0 * LES_Alpha_xz(ctx, i, j, k) * les_alpha_get_Sxz(ctx);
+      fmy = -2.0 * LES_Alpha_yz(ctx, i, j, k) * les_alpha_get_Syz(ctx);
+      fmz = -2.0 * LES_Alpha_zz(ctx, i, j, k) *
+                (les_alpha_get_Szz(ctx) - c13 * les_alpha_get_divV(ctx)) +
+            2.0 * c13 * LES_Alpha(ctx, i, j, k) * les_alpha_get_divV(ctx);
 
       ViS[k][MX1] = 0.0;
       ViS[k][MX2] = 0.0;
       ViS[k][MX3] = 0.0;
-      ViS[k][ENG] = 0.0;
+      // ViS[k][ENG] = 0.0;
 #endif /* -- end #if GEOMETRY -- */
 
       /* ------------------------------------------
@@ -397,7 +589,7 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
       ViF[k][MX2] = fmy;
       ViF[k][MX3] = fmz;
 
-      ViF[k][ENG] = 0;
+      // ViF[k][ENG] = 0;
 
 #if HAVE_ENERGY
       ViF[k][ENG] = fe;
@@ -413,4 +605,5 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
     // printf("z sweep: VIF[ENG] = %g\n", ViF[i][ENG]);
 
   } /*sweep*/
+  les_alpha_delete(ctx);
 }

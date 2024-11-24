@@ -784,10 +784,6 @@ typedef double ****Data_Arr;
 #define NTRACER_LOOP(n) for ((n) = TRC; (n) < (TRC + NTRACER); (n)++)
 #define NSCL_LOOP(n) for ((n) = NFLX; (n) < (NFLX + NSCL); (n)++)
 
-#include "LES/les.h"
-
-#include "MHD/LES/mhd_les.h"
-
 #if DUST_FLUID == YES
 #include "Dust_Fluid/dust_fluid.h" /* Dust header file */
 #else
@@ -818,8 +814,16 @@ typedef double ****Data_Arr;
 #include "New/High_Order/high_order.h"
 #endif
 
-#if INCLUDE_LES == YES
+#ifdef LES
 #include "LES/les.h" /* LES (Large Eddy Simulation) module header */
+#endif
+
+// #if INCLUDE_LES == YES
+// #include "LES/les.h" /* LES (Large Eddy Simulation) module header */
+// #endif
+
+#ifdef LES
+#include "MHD/LES/mhd_les.h"
 #endif
 
 #if (PARTICLES != NO) /* Particle Header File */
