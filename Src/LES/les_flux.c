@@ -278,6 +278,7 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
           }
         }
 
+        double local_volume = divider;
         if (divider == 0.0)
           divider += 1e-20;
 
@@ -387,8 +388,6 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
         Mu_zz = Azz_f * (Szz_f - c13 * divV_f) - Mu_Szz_f;
 
         ALPHA_Y = A_f * S_f - Y_f;
-
-        double local_volume = dx1[i_h] * dx2[j_h] * dx3[k_h];
 
         Cs_averaged_numerator +=
             (Lu_xx * Mu_xx + Lu_xy * Mu_xy + Lu_xz * Mu_xz + Lu_xy * Mu_yx +
