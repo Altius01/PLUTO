@@ -45,6 +45,10 @@ double les_phi_get_Jxy(LES_phi_ctx *ctx) { return ctx->Jxy; }
 double les_phi_get_Jxz(LES_phi_ctx *ctx) { return ctx->Jxz; }
 double les_phi_get_Jyz(LES_phi_ctx *ctx) { return ctx->Jyz; }
 
+double les_phi_get_Jyx(LES_phi_ctx *ctx) { return -ctx->Jxy; }
+double les_phi_get_Jzx(LES_phi_ctx *ctx) { return -ctx->Jxz; }
+double les_phi_get_Jzy(LES_phi_ctx *ctx) { return -ctx->Jyz; }
+
 double LES_Phi_xx(LES_phi_ctx *ctx, int i, int j, int k) { return ctx->scrh; };
 
 double LES_Phi_xy(LES_phi_ctx *ctx, int i, int j, int k) { return ctx->scrh; }

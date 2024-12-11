@@ -24,6 +24,9 @@ double les_phi_get_Jxz(LES_phi_ctx *ctx);
 double les_phi_get_Jyy(LES_phi_ctx *ctx);
 double les_phi_get_Jyz(LES_phi_ctx *ctx);
 double les_phi_get_Jzz(LES_phi_ctx *ctx);
+double les_phi_get_Jyx(LES_phi_ctx *ctx);
+double les_phi_get_Jzx(LES_phi_ctx *ctx);
+double les_phi_get_Jzy(LES_phi_ctx *ctx);
 
 double LES_Phi_xx(LES_phi_ctx *ctx, int i, int j, int k);
 double LES_Phi_xy(LES_phi_ctx *ctx, int i, int j, int k);

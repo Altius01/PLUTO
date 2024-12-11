@@ -38,6 +38,7 @@ double les_alpha_get_nut(LES_alpha_ctx *ctx) { return ctx->nu_t; }
 double les_alpha_get_nut_trace(LES_alpha_ctx *ctx) { return ctx->nu_t_prime; }
 
 double les_alpha_get_divV(LES_alpha_ctx *ctx) { return ctx->divV; }
+double les_alpha_get_S(LES_alpha_ctx *ctx) { return ctx->S; }
 double les_alpha_get_Sxx(LES_alpha_ctx *ctx) { return ctx->Sxx; }
 double les_alpha_get_Sxy(LES_alpha_ctx *ctx) { return ctx->Sxy; }
 double les_alpha_get_Sxz(LES_alpha_ctx *ctx) { return ctx->Sxz; }

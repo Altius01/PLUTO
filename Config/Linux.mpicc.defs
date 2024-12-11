@@ -5,8 +5,11 @@
 ########################################################################
 
 CC       = mpicc
-CFLAGS   = -c -O3 -std=c17  -Wundef
+CFLAGS   = -c -O3 -std=c17 -Wundef
 LDFLAGS  = -lm
+#CFLAGS=-O3
+
+
 
 PARALLEL = TRUE
 USE_HDF5 = FALSE

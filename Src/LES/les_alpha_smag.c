@@ -55,11 +55,6 @@ void update_les_alpha_ctx(LES_alpha_ctx *ctx, double *vi, Grid *grid, int i,
               inv_dx3;
 #endif
 
-  // printf("dxVx = %f, dxVy = %f, dxVz = %f\n", ctx->dxVx, ctx->dxVy,
-  // ctx->dxVz); printf("dyVx = %f, dyVy = %f, dyVz = %f\n", ctx->dyVx,
-  // ctx->dyVy, ctx->dyVz); printf("dzVx = %f, dzVy = %f, dzVz = %f\n",
-  // ctx->dzVx, ctx->dzVy, ctx->dzVz);
-
   ctx->Sxx = 0.5 * (ctx->dxVx + ctx->dxVx);
   ctx->Sxy = 0.5 * (ctx->dyVx + ctx->dxVy);
   ctx->Sxz = 0.5 * (ctx->dzVx + ctx->dxVz);
@@ -73,21 +68,14 @@ void update_les_alpha_ctx(LES_alpha_ctx *ctx, double *vi, Grid *grid, int i,
       2.0 * (ctx->Sxy * ctx->Sxy + ctx->Sxz * ctx->Sxz + ctx->Syz * ctx->Syz);
   ctx->S = sqrt(2.0 * ctx->S);
 
-  // printf("Sxx: %g, Sxy: %g, Sxz: %g, Syy: %g, Syz: %g, Szz: %g, S: %g\n",
-  // ctx->Sxx, ctx->Sxy, ctx->Sxz, ctx->Syy, ctx->Syz, ctx->Szz, ctx->S);
-
   ctx->divV = DIM_EXPAND(ctx->dxVx, +ctx->dyVy, +ctx->dzVz);
 
   ctx->rho = vi[RHO];
 
-  ctx->nu_t = get_LES_Cs() * ctx->dl2 * ctx->S;
-  ctx->nu_t_prime = get_LES_Ys() * ctx->dl2 * ctx->S;
+  ctx->nu_t = ctx->dl2 * ctx->S;
+  ctx->nu_t_prime = ctx->dl2 * ctx->S;
 
-  // printf("Cs = %g, Ys = %g\n", get_LES_Cs(), get_LES_Ys());
+  ctx->scrh = ctx->rho * ctx->nu_t;
 
-  ctx->scrh = vi[RHO] * ctx->nu_t;
-  // printf("scrh = %g, nu_t = %g, nu_t_prime = %g\n", ctx->scrh, ctx->nu_t,
-  //        ctx->nu_t_prime);
-
-  ctx->scrh_trace = ctx->rho * ctx->nu_t;
+  ctx->scrh_trace = ctx->rho * ctx->nu_t_prime;
 }

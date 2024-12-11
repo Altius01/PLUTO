@@ -936,6 +936,16 @@ extern double g_smallDensity, g_smallPressure;
 
 extern double g_time, g_dt;
 extern double g_maxMach;
+
+#if LES
+extern double g_maxCs;
+extern double g_maxYs;
+#endif
+
+#if MHD_LES
+extern double g_maxDs;
+#endif
+
 #if ROTATING_FRAME
 extern double g_OmegaZ;
 #endif

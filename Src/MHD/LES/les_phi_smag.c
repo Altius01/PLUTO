@@ -35,6 +35,10 @@ void update_les_phi_ctx(LES_phi_ctx *ctx, double *vi, Grid *grid, int i, int j,
   ctx->dxBx = FDIFF_X1(ctx->Bx, k, j, i) * inv_dx1;
   ctx->dxBy = FDIFF_X1(ctx->By, k, j, i) * inv_dx1;
   ctx->dxBz = FDIFF_X1(ctx->Bz, k, j, i) * inv_dx1;
+#else
+  ctx->dxBx = 0;
+  ctx->dxBy = 0;
+  ctx->dxBz = 0;
 #endif
 #if INCLUDE_JDIR
   ctx->dyBx = 0.5 *
@@ -46,6 +50,11 @@ void update_les_phi_ctx(LES_phi_ctx *ctx, double *vi, Grid *grid, int i, int j,
   ctx->dyBz = 0.5 *
               (CDIFF_X2(ctx->Bz, k, j, i) + CDIFF_X2(ctx->Bz, k, j, i + 1)) *
               inv_dx2;
+#else
+  ctx->dyBx = 0;
+  ctx->dyBy = 0;
+  ctx->dyBz = 0;
+
 #endif
 #if INCLUDE_KDIR
   ctx->dzBx = 0.5 *
@@ -57,11 +66,16 @@ void update_les_phi_ctx(LES_phi_ctx *ctx, double *vi, Grid *grid, int i, int j,
   ctx->dzBz = 0.5 *
               (CDIFF_X3(ctx->Bz, k, j, i) + CDIFF_X3(ctx->Bz, k, j, i + 1)) *
               inv_dx3;
+#else
+  ctx->dzBx = 0;
+  ctx->dzBy = 0;
+  ctx->dzBz = 0;
+
 #endif
 
-  ctx->Jp[IDIR] = ctx->Jx1[k][j][i];
-  ctx->Jp[JDIR] = ctx->Jx2[k][j][i];
-  ctx->Jp[KDIR] = ctx->Jx3[k][j][i];
+  ctx->Jp[IDIR] = ctx->dyBz - ctx->dzBy;
+  ctx->Jp[JDIR] = ctx->dzBx - ctx->dxBz;
+  ctx->Jp[KDIR] = ctx->dxBy - ctx->dyBx;
 
   ctx->j = ctx->Jp[IDIR] * ctx->Jp[IDIR] + ctx->Jp[JDIR] * ctx->Jp[JDIR] +
            ctx->Jp[KDIR] * ctx->Jp[KDIR];
@@ -71,7 +85,7 @@ void update_les_phi_ctx(LES_phi_ctx *ctx, double *vi, Grid *grid, int i, int j,
   ctx->Jxz = 0.5 * (ctx->dzBx - ctx->dxBz);
   ctx->Jyz = 0.5 * (ctx->dzBy - ctx->dyBz);
 
-  ctx->eta_t = get_LES_Cs() * ctx->dl2 * ctx->j;
+  ctx->eta_t = ctx->dl2 * ctx->j;
 
   ctx->scrh = ctx->eta_t;
 }

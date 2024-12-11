@@ -360,6 +360,15 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
     g_inputParam[nv] = runtime->aux[nv];
   }
 
+#if LES
+  g_maxCs = 0;
+  g_maxYs = 0;
+#endif
+
+#if MHD_LES
+  g_maxDs = 0;
+#endif
+
   IBEG = grid->lbeg[IDIR];
   IEND = grid->lend[IDIR];
   JBEG = grid->lbeg[JDIR];

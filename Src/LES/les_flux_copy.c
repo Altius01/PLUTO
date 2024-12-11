@@ -1,9 +1,5 @@
 #include "pluto.h"
 
-#ifndef LES_FMIN
-#define LES_FMIN 0.5 /* blah blah  */
-#endif
-
 static double ***f;
 
 /* ********************************************************************* */

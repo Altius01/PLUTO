@@ -1,11 +1,16 @@
 #include "pluto.h"
 
 #include "LES/les_phi.h"
+#include <stdlib.h>
 
-static double Ds = 0.1;
+static double Ds = INIT_DS;
 
 double get_MHD_LES_Ds() { return Ds; }
-void set_MHD_LES_Ds(double ds) { Ds = ds > 0 ? ds : 0; }
+void set_MHD_LES_Ds(double ds) {
+  Ds = ds > 0 ? MIN(ds, 0.3) : 0;
+  // // printf("DS: %lf | ds: %lf\n", Ds, ds);
+  g_maxDs = MAX(g_maxDs, Ds);
+}
 
 #define ITOT_LOOP_FILTERED(i) for ((i) = 0; (i) < NX1_TOT; (i) += 2)
 #define JTOT_LOOP_FILTERED(j) for ((j) = 0; (j) < NX2_TOT; (j) += 2)
@@ -51,18 +56,20 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
 
   double dxBx, dxBy, dxBz, dyBx, dyBy, dyBz, dzBx, dzBy, dzBz;
   double S;
-  double J, Jxx, Jyy, Jzz, Jxy, Jxz, Jyx, Jzx, Jyz, Jzy;
+  double Jxx, Jyy, Jzz, Jxy, Jxz, Jyx, Jzx, Jyz, Jzy;
   Jxx = Jyy = Jzz = 0.0;
 
-  double divJ, divr, scrh;
+  double divJ, divr;
   double wx, wy, wz, qx, qy, qz;
   double fBx, fBy, fBz, fe;
   double nu_max;
-  double Ds = 0.1, Dsdl2, dH;
+  double Ds_ = 0.1, Dsdl2, dH;
   double Prandtl = 0.71;
 
+#if DYNAMIC_PROCEDURE
   static double Lb_xy, Lb_xz, Lb_yz;
   static double Mb_xx, Mb_xy, Mb_xz, Mb_yx, Mb_yy, Mb_yz, Mb_zx, Mb_zy, Mb_zz;
+#endif
 
   LES_phi_ctx *ctx = les_phi_create();
 
@@ -105,27 +112,29 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
 
   init_les_phi_ctx(ctx, d, grid);
 
+#if DYNAMIC_PROCEDURE
   double Ds_averaged_numerator = 0, Ds_averaged_denominator = 0;
 
   int i_h, j_h, k_h;
   KTOT_LOOP_FILTERED(k_h) {
     JTOT_LOOP_FILTERED(j_h) {
       ITOT_LOOP_FILTERED(i_h) {
-        double divider = 1.0;
-        double rho_f, rhovx_f, rhovy_f, rhovz_f, Bx_f, By_f, Bz_f = 0;
-        double BxBx_f, ByBy_f, BzBz_f, BxBy_f, BxBz_f, ByBz_f = 0;
+        double divider = 0.0;
+        double rho_f = 0, rhovx_f = 0, rhovy_f = 0, rhovz_f = 0, Bx_f = 0,
+               By_f = 0, Bz_f = 0;
 
         double Phixx_f = 0, Phixy_f = 0, Phixz_f = 0, Phiyy_f = 0, Phiyx_f = 0,
                Phiyz_f = 0, Phizx_f = 0, Phizy_f = 0, Phizz_f = 0;
 
         double Jxy_f = 0, Jxz_f = 0, Jyz_f = 0;
 
-        double Lb_VxBy_f, Lb_VxBz_f, Lb_VyBx_f, Lb_VyBz_f, Lb_VzBy_f,
-            Lb_VzBx_f = 0;
+        double Lb_VxBy_f = 0, Lb_VxBz_f = 0, Lb_VyBx_f = 0, Lb_VyBz_f = 0,
+               Lb_VzBy_f = 0, Lb_VzBx_f = 0;
 
-        double Mb_xy_f, Mb_xz_f, Mb_yx_f, Mb_yz_f, Mb_zy_f, Mb_zx_f = 0;
+        double Mb_xy_f = 0, Mb_xz_f = 0, Mb_yx_f = 0, Mb_yz_f = 0, Mb_zy_f = 0,
+               Mb_zx_f = 0;
 
-        int delta_i, delta_j, delta_k = 0;
+        int delta_i = 0, delta_j = 0, delta_k = 0;
 
 #if INCLUDE_IDIR
         delta_i = 1;
@@ -160,19 +169,12 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
               By_f += (By_)*local_volume;
               Bz_f += (Bz_)*local_volume;
 
-              BxBx_f += (Bx_ * Bx_) * local_volume;
-              ByBy_f += (By_ * By_) * local_volume;
-              BzBz_f += (Bz_ * Bz_) * local_volume;
-              BxBy_f += (Bx_ * By_) * local_volume;
-              BxBz_f += (Bx_ * Bz_) * local_volume;
-              ByBz_f += (By_ * Bz_) * local_volume;
-
-              Lb_VxBy_f += (By_ * Vx_) * local_volume;
-              Lb_VxBz_f += (Bz_ * Vx_) * local_volume;
-              Lb_VyBx_f += (Bx_ * Vy_) * local_volume;
-              Lb_VyBz_f += (Bz_ * Vy_) * local_volume;
-              Lb_VzBx_f += (Bx_ * Vz_) * local_volume;
-              Lb_VzBy_f += (By_ * Vz_) * local_volume;
+              Lb_VxBy_f += (rho_ * By_ * Vx_) * local_volume;
+              Lb_VxBz_f += (rho_ * Bz_ * Vx_) * local_volume;
+              Lb_VyBx_f += (rho_ * Bx_ * Vy_) * local_volume;
+              Lb_VyBz_f += (rho_ * Bz_ * Vy_) * local_volume;
+              Lb_VzBx_f += (rho_ * Bx_ * Vz_) * local_volume;
+              Lb_VzBy_f += (rho_ * By_ * Vz_) * local_volume;
 
               NVAR_LOOP(nv) {
                 vi[nv] = 0.5 * (d->Vc[nv][k][j][i] + d->Vc[nv][k][j][i + 1]);
@@ -218,33 +220,32 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
           }
         }
 
+        if (divider == 0.0) {
+          divider += 1e-20;
+        }
         divider = 1.0 / divider;
 
         rho_f *= divider;
 
-        rhovx_f *= divider;
-        rhovy_f *= divider;
-        rhovz_f *= divider;
+        if (rho_f == 0.0) {
+          rho_f += 1e-20;
+        }
+        double inv_rho_f = 1.0 / rho_f;
+
+        rhovx_f *= inv_rho_f * divider;
+        rhovy_f *= inv_rho_f * divider;
+        rhovz_f *= inv_rho_f * divider;
 
         Bx_f *= divider;
         By_f *= divider;
         Bz_f *= divider;
 
-        BxBx_f *= divider;
-        ByBy_f *= divider;
-        BzBz_f *= divider;
-        BxBy_f *= divider;
-        BxBz_f *= divider;
-        ByBz_f *= divider;
-
-        Lb_VxBy_f *= divider;
-        Lb_VxBz_f *= divider;
-        Lb_VyBx_f *= divider;
-        Lb_VyBz_f *= divider;
-        Lb_VzBx_f *= divider;
-        Lb_VzBy_f *= divider;
-
-        double inv_rho_f = 1.0 / rho_f;
+        Lb_VxBy_f *= inv_rho_f * divider;
+        Lb_VxBz_f *= inv_rho_f * divider;
+        Lb_VyBx_f *= inv_rho_f * divider;
+        Lb_VyBz_f *= inv_rho_f * divider;
+        Lb_VzBx_f *= inv_rho_f * divider;
+        Lb_VzBy_f *= inv_rho_f * divider;
 
         Lb_xy = (Lb_VxBy_f - rhovx_f * inv_rho_f * By_f) -
                 (Lb_VyBx_f - rhovy_f * inv_rho_f * Bx_f);
@@ -259,19 +260,19 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
         Mb_xy = Phixy_f * Jxy_f - Mb_xy_f;
         Mb_xz = Phixz_f * Jxz_f - Mb_xz_f;
 
-        Mb_yx = Phiyx_f * Jxy_f - Mb_yx_f;
+        Mb_yx = -Phiyx_f * Jxy_f - Mb_yx_f;
         Mb_yy = 0;
         Mb_yz = Phiyz_f * Jyz_f - Mb_yz_f;
 
-        Mb_zx = Phizx_f * Jxz_f - Mb_zx_f;
-        Mb_zy = Phizy_f * Jyz_f - Mb_zy_f;
+        Mb_zx = -Phizx_f * Jxz_f - Mb_zx_f;
+        Mb_zy = -Phizy_f * Jyz_f - Mb_zy_f;
         Mb_zz = 0;
 
         double local_volume = dx1[i_h] * dx2[j_h] * dx3[k_h];
 
         Ds_averaged_numerator +=
-            (Lb_xy * Mb_xy + Lb_xz * Mb_xz + Lb_xy * Mb_yx + Lb_yz * Mb_yz +
-             Lb_xz * Mb_zx + Lb_yz * Mb_zy) *
+            (Lb_xy * Mb_xy + Lb_xz * Mb_xz - Lb_xy * Mb_yx + Lb_yz * Mb_yz -
+             Lb_xz * Mb_zx - Lb_yz * Mb_zy) *
             local_volume;
 
         Ds_averaged_denominator +=
@@ -279,11 +280,22 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
              Mb_yy * Mb_yy + Mb_yz * Mb_yz + Mb_zx * Mb_zx + Mb_zy * Mb_zy +
              Mb_zz * Mb_zz) *
             local_volume;
+
+        // if (Ds_averaged_numerator / (Ds_averaged_denominator + 1e-10) > 10) {
+        //   printf("local_volume: %.10e\n", local_volume);
+        //   printf("Lb_xy: %.10e, Lb_xz: %.10e, Lb_yz: %.10e \n", Lb_xy, Lb_xz,
+        //          Lb_yz);
+        //   printf("Mb_xx: %.10e, Mb_xy: %.10e, Mb_xz: %.10e, Mb_yx: %.10e, "
+        //          "Mb_yy: %.10e, Mb_yz: %.10e, Mb_zx: %.10e, Mb_zy: %.10e\n",
+        //          Mb_xx, Mb_xy, Mb_xz, Mb_yx, Mb_yy, Mb_yz, Mb_zx, Mb_zy);
+        //   exit(1);
+        // }
       }
     }
   }
 
-  set_MHD_LES_Ds(Ds_averaged_numerator / Ds_averaged_denominator);
+  set_MHD_LES_Ds(Ds_averaged_numerator / (Ds_averaged_denominator + 1e-10));
+#endif
 
   if (g_dir == IDIR) {
 
@@ -292,41 +304,7 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
           interfaces
        ------------------------------------------------------ */
 
-    inv_dx2 = 1.0 / dx2[j];
-    inv_dx3 = 1.0 / dx3[k];
     for (i = beg; i <= end; i++) {
-      inv_dx1 = 1.0 / dx1[i];
-
-      /* -- 1a. Compute face- and cell-centered values  -- */
-
-      NVAR_LOOP(nv) {
-        vi[nv] = 0.5 * (d->Vc[nv][k][j][i] + d->Vc[nv][k][j][i + 1]);
-        vc[nv] = d->Vc[nv][k][j][i];
-      }
-      /* -- 1b. Compute viscosity and velocity derivatives -- */
-
-#if INCLUDE_IDIR
-      dxBx = FDIFF_X1(Bx, k, j, i) * inv_dx1;
-      dxBy = FDIFF_X1(By, k, j, i) * inv_dx1;
-      dxBz = FDIFF_X1(Bz, k, j, i) * inv_dx1;
-#endif
-#if INCLUDE_JDIR
-      dyBx =
-          0.5 * (CDIFF_X2(Bx, k, j, i) + CDIFF_X2(Bx, k, j, i + 1)) * inv_dx2;
-      dyBy =
-          0.5 * (CDIFF_X2(By, k, j, i) + CDIFF_X2(By, k, j, i + 1)) * inv_dx2;
-      dyBz =
-          0.5 * (CDIFF_X2(Bz, k, j, i) + CDIFF_X2(Bz, k, j, i + 1)) * inv_dx2;
-#endif
-#if INCLUDE_KDIR
-      dzBx =
-          0.5 * (CDIFF_X3(Bx, k, j, i) + CDIFF_X3(Bx, k, j, i + 1)) * inv_dx3;
-      dzBy =
-          0.5 * (CDIFF_X3(By, k, j, i) + CDIFF_X3(By, k, j, i + 1)) * inv_dx3;
-      dzBz =
-          0.5 * (CDIFF_X3(Bz, k, j, i) + CDIFF_X3(Bz, k, j, i + 1)) * inv_dx3;
-#endif
-
       /* ------------------------------------------
          1c. Compute stress tensor components and
              geometrical source terms in different
@@ -335,31 +313,17 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
 
 #if GEOMETRY == CARTESIAN
 
-      Jxy = 0.5 * (dyBx - dxBy);
-      Jyx = -Jxy;
-      Jxz = 0.5 * (dzBx - dxBz);
-      Jzx = -Jxz;
-      Jyz = 0.5 * (dzBy - dyBz);
-      Jzy = -Jyz;
+      Ds_ = get_MHD_LES_Ds();
+      nu_t = Ds_ * les_phi_get_eta(ctx);
 
-      J = Jx1[k][j][i] * Jx1[k][j][i] + Jx2[k][j][i] * Jx2[k][j][i] +
-          Jx3[k][j][i] * Jx3[k][j][i];
-
-      J = sqrt(J);
-
-      nu_t = Dsdl2 * J;
-      nu_max = MAX(nu_max, les_phi_get_eta(ctx));
-      dcoeff[i] = nu_t;
-
-      scrh = 2.0 * nu_t;
+      nu_max = MAX(nu_max, nu_t);
+      dcoeff[i] = nu_max;
 
       fBx = 0;
-      fBy = 2.0 * LES_Phi_yx(ctx, i, j, k) * les_phi_get_Jxy(ctx);
-      fBz = 2.0 * LES_Phi_zx(ctx, i, j, k) * les_phi_get_Jxz(ctx);
-
-      // fBx = scrh * Jxx;
-      // fBy = scrh * Jxy;
-      // fBz = scrh * Jxz;
+      fBy = -2.0 * get_MHD_LES_Ds() * LES_Phi_xy(ctx, i, j, k) *
+            les_phi_get_Jxy(ctx);
+      fBz = -2.0 * get_MHD_LES_Ds() * LES_Phi_xz(ctx, i, j, k) *
+            les_phi_get_Jxz(ctx);
 
       // dH = (H[k][j][i + 1] - H[k][j][i]);
       // fe = vi[RHO] * nu_t / Prandtl * dH / dx;
@@ -382,14 +346,6 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
 #if HAVE_ENERGY
       // ViF[i][ENG] = fe;
 #endif
-      // printf("x sweep: VIS[BX1] = %g\n", ViS[i][BX1]);
-      // printf("x sweep: VIS[BX3] = %g\n", ViS[i][BX3]);
-      // printf("x sweep: VIS[BX2] = %g\n", ViS[i][BX2]);
-      // printf("x sweep: VIS[ENG] = %g\n", ViS[i][ENG]);
-      // printf("x sweep: VIF[BX1] = %g\n", ViF[i][BX1]);
-      // printf("x sweep: VIF[BX2] = %g\n", ViF[i][BX2]);
-      // printf("x sweep: VIF[BX3] = %g\n", ViF[i][BX3]);
-      // printf("x sweep: VIF[ENG] = %g\n", ViF[i][ENG]);
     }
   } else if (g_dir == JDIR) {
 
@@ -398,41 +354,7 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
           interfaces
        ------------------------------------------------------ */
 
-    inv_dx1 = 1.0 / dx1[i];
-    inv_dx3 = 1.0 / dx3[k];
     for (j = beg; j <= end; j++) {
-      inv_dx2 = 1.0 / dx2[j];
-
-      /* -- 2a. Compute face- and cell-centered values  -- */
-
-      NVAR_LOOP(nv) {
-        vi[nv] = 0.5 * (d->Vc[nv][k][j + 1][i] + d->Vc[nv][k][j][i]);
-        vc[nv] = d->Vc[nv][k][j][i];
-      }
-      /* -- 2b. Compute viscosity and velocity derivatives -- */
-
-#if INCLUDE_IDIR
-      dxBx =
-          0.5 * (CDIFF_X1(Bx, k, j, i) + CDIFF_X1(Bx, k, j + 1, i)) * inv_dx1;
-      dxBy =
-          0.5 * (CDIFF_X1(By, k, j, i) + CDIFF_X1(By, k, j + 1, i)) * inv_dx1;
-      dxBz =
-          0.5 * (CDIFF_X1(Bz, k, j, i) + CDIFF_X1(Bz, k, j + 1, i)) * inv_dx1;
-#endif
-#if INCLUDE_JDIR
-      dyBx = FDIFF_X2(Bx, k, j, i) * inv_dx2;
-      dyBy = FDIFF_X2(By, k, j, i) * inv_dx2;
-      dyBz = FDIFF_X2(Bz, k, j, i) * inv_dx2;
-#endif
-#if INCLUDE_KDIR
-      dzBx =
-          0.5 * (CDIFF_X3(Bx, k, j, i) + CDIFF_X3(Bx, k, j + 1, i)) * inv_dx3;
-      dzBy =
-          0.5 * (CDIFF_X3(By, k, j, i) + CDIFF_X3(By, k, j + 1, i)) * inv_dx3;
-      dzBz =
-          0.5 * (CDIFF_X3(Bz, k, j, i) + CDIFF_X3(Bz, k, j + 1, i)) * inv_dx3;
-#endif
-
       /* ------------------------------------------
          2c. Compute stress tensor components and
              geometrical source terms in different
@@ -440,32 +362,18 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
          ------------------------------------------ */
 
 #if GEOMETRY == CARTESIAN
-      Jxy = 0.5 * (dyBx - dxBy);
-      Jyx = -Jxy;
-      Jxz = 0.5 * (dzBx - dxBz);
-      Jzx = -Jxz;
-      Jyz = 0.5 * (dzBy - dyBz);
-      Jzy = -Jyz;
 
-      J = Jx1[k][j][i] * Jx1[k][j][i] + Jx2[k][j][i] * Jx2[k][j][i] +
-          Jx3[k][j][i] * Jx3[k][j][i];
+      Ds_ = get_MHD_LES_Ds();
+      nu_t = Ds_ * les_phi_get_eta(ctx);
 
-      J = sqrt(J);
+      nu_max = MAX(nu_max, nu_t);
+      dcoeff[j] = nu_max;
 
-      nu_t = Dsdl2 * J;
-
-      nu_max = MAX(nu_max, les_phi_get_eta(ctx));
-      dcoeff[j] = nu_t;
-
-      scrh = 2.0 * nu_t;
-
-      fBx = -2.0 * LES_Phi_xy(ctx, i, j, k) * les_phi_get_Jxy(ctx);
+      fBx = -2.0 * get_MHD_LES_Ds() * LES_Phi_yx(ctx, i, j, k) *
+            les_phi_get_Jyx(ctx);
       fBy = 0;
-      fBz = 2.0 * LES_Phi_zy(ctx, i, j, k) * les_phi_get_Jyz(ctx);
-
-      // fBx = scrh * Jxy;
-      // fBy = scrh * Jyy;
-      // fBz = scrh * Jyz;
+      fBz = -2.0 * get_MHD_LES_Ds() * LES_Phi_yz(ctx, i, j, k) *
+            les_phi_get_Jyz(ctx);
 
       // dH = (H[k][j + 1][i] - H[k][j][i]);
       // fe = vi[RHO] * nu_t / Prandtl * dH / dy;
@@ -490,15 +398,6 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
 #endif
     }
 
-    // printf("y sweep: VIS[BX1] = %g\n", ViS[i][BX1]);
-    // printf("y sweep: VIS[BX2] = %g\n", ViS[i][BX2]);
-    // printf("y sweep: VIS[BX3] = %g\n", ViS[i][BX3]);
-    // printf("y sweep: VIS[ENG] = %g\n", ViS[i][ENG]);
-    // printf("y sweep: VIF[BX1] = %g\n", ViF[i][BX1]);
-    // printf("y sweep: VIF[BX2] = %g\n", ViF[i][BX2]);
-    // printf("y sweep: VIF[BX3] = %g\n", ViF[i][BX3]);
-    // printf("y sweep: VIF[ENG] = %g\n", ViF[i][ENG]);
-
   } else if (g_dir == KDIR) {
 
     /* ------------------------------------------------------
@@ -506,41 +405,7 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
           interfaces
        ------------------------------------------------------ */
 
-    inv_dx1 = 1.0 / dx1[i];
-    inv_dx2 = 1.0 / dx2[j];
     for (k = beg; k <= end; k++) {
-      inv_dx3 = 1.0 / grid->dx[KDIR][k];
-
-      /* -- 3a. Compute face- and cell-centered values  -- */
-
-      NVAR_LOOP(nv) {
-        vi[nv] = 0.5 * (d->Vc[nv][k][j][i] + d->Vc[nv][k + 1][j][i]);
-        vc[nv] = d->Vc[nv][k][j][i];
-      }
-      /* -- 3b. Compute viscosity and velocity derivatives -- */
-
-#if INCLUDE_IDIR
-      dxBx =
-          0.5 * (CDIFF_X1(Bx, k, j, i) + CDIFF_X1(Bx, k + 1, j, i)) * inv_dx1;
-      dxBy =
-          0.5 * (CDIFF_X1(By, k, j, i) + CDIFF_X1(By, k + 1, j, i)) * inv_dx1;
-      dxBz =
-          0.5 * (CDIFF_X1(Bz, k, j, i) + CDIFF_X1(Bz, k + 1, j, i)) * inv_dx1;
-#endif
-#if INCLUDE_JDIR
-      dyBx =
-          0.5 * (CDIFF_X2(Bx, k, j, i) + CDIFF_X2(Bx, k + 1, j, i)) * inv_dx2;
-      dyBy =
-          0.5 * (CDIFF_X2(By, k, j, i) + CDIFF_X2(By, k + 1, j, i)) * inv_dx2;
-      dyBz =
-          0.5 * (CDIFF_X2(Bz, k, j, i) + CDIFF_X2(Bz, k + 1, j, i)) * inv_dx2;
-#endif
-#if INCLUDE_KDIR
-      dzBx = FDIFF_X3(Bx, k, j, i) * inv_dx3;
-      dzBy = FDIFF_X3(By, k, j, i) * inv_dx3;
-      dzBz = FDIFF_X3(Bz, k, j, i) * inv_dx3;
-#endif
-
       /* ------------------------------------------
          3c. Compute stress tensor components and
              geometrical source terms in different
@@ -549,31 +414,17 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
 
 #if GEOMETRY == CARTESIAN
 
-      Jxy = 0.5 * (dyBx - dxBy);
-      Jyx = -Jxy;
-      Jxz = 0.5 * (dzBx - dxBz);
-      Jzx = -Jxz;
-      Jyz = 0.5 * (dzBy - dyBz);
-      Jzy = -Jyz;
+      Ds_ = get_MHD_LES_Ds();
+      nu_t = Ds_ * les_phi_get_eta(ctx);
 
-      J = Jx1[k][j][i] * Jx1[k][j][i] + Jx2[k][j][i] * Jx2[k][j][i] +
-          Jx3[k][j][i] * Jx3[k][j][i];
+      nu_max = MAX(nu_max, nu_t);
+      dcoeff[k] = nu_max;
 
-      J = sqrt(J);
-
-      nu_t = Dsdl2 * J;
-      nu_max = MAX(nu_max, les_phi_get_eta(ctx));
-      dcoeff[k] = nu_t;
-
-      scrh = 2.0 * vi[RHO] * nu_t;
-
-      fBx = -2.0 * LES_Phi_xz(ctx, i, j, k) * les_phi_get_Jxz(ctx);
-      fBy = -2.0 * LES_Phi_yz(ctx, i, j, k) * les_phi_get_Jyz(ctx);
+      fBx = -2.0 * get_MHD_LES_Ds() * LES_Phi_zx(ctx, i, j, k) *
+            les_phi_get_Jzx(ctx);
+      fBy = -2.0 * get_MHD_LES_Ds() * LES_Phi_zy(ctx, i, j, k) *
+            les_phi_get_Jzy(ctx);
       fBz = 0;
-
-      // fBx = scrh * Jxz;
-      // fBy = scrh * Jyz;
-      // fBz = scrh * Jzz;
 
       // dH = (H[k + 1][j][i] - H[k][j][i]);
       // fe = nu_t / Prandtl * dH / dz;
@@ -598,15 +449,6 @@ void LES_ViscousFlux_MHD(const Data *d, double **ViF, double **ViS,
       // ViF[k][ENG] = fe;
 #endif
     } /*loop*/
-    // printf("z sweep: VIS[BX1] = %g\n", ViS[i][BX1]);
-    // printf("z sweep: VIS[BX2] = %g\n", ViS[i][BX2]);
-    // printf("z sweep: VIS[BX3] = %g\n", ViS[i][BX3]);
-    // printf("z sweep: VIS[ENG] = %g\n", ViS[i][ENG]);
-    // printf("z sweep: VIF[BX1] = %g\n", ViF[i][BX1]);
-    // printf("z sweep: VIF[BX2] = %g\n", ViF[i][BX2]);
-    // printf("z sweep: VIF[BX3] = %g\n", ViF[i][BX3]);
-    // printf("z sweep: VIF[ENG] = %g\n", ViF[i][ENG]);
-
   } /*sweep*/
   les_phi_delete(ctx);
 }

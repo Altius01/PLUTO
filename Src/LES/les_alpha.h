@@ -20,6 +20,7 @@ double les_alpha_get_nut(LES_alpha_ctx *ctx);
 double les_alpha_get_nut_trace(LES_alpha_ctx *ctx);
 
 double les_alpha_get_divV(LES_alpha_ctx *ctx);
+double les_alpha_get_S(LES_alpha_ctx *ctx);
 double les_alpha_get_Sxx(LES_alpha_ctx *ctx);
 double les_alpha_get_Sxy(LES_alpha_ctx *ctx);
 double les_alpha_get_Sxz(LES_alpha_ctx *ctx);

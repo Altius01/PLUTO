@@ -29,6 +29,8 @@
   \date   Oct 07, 2022
 */
 /* ///////////////////////////////////////////////////////////////////// */
+#include "LES/les.h"
+#include "LES/mhd_les.h"
 #include "pluto.h"
 
 #include "globals.h"
@@ -68,6 +70,15 @@ int main(int argc, char *argv[])
   timeStep Dts;
   cmdLine cmd_line;
   Runtime runtime;
+
+#if LES
+  double les_cs = get_LES_Cs();
+  double les_ys = get_LES_Ys();
+#endif
+
+#if MHD_LES
+  double mhd_les_ds = get_MHD_LES_Ds();
+#endif
 
   /* --------------------------------------------------------
      0. Initialize environment
@@ -246,6 +257,20 @@ int main(int argc, char *argv[])
     MPI_Allreduce(&g_maxRiemannIter, &nv, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
     g_maxRiemannIter = nv;
 
+#if LES
+    MPI_Allreduce(&g_maxCs, &les_cs, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    g_maxCs = les_cs;
+
+    MPI_Allreduce(&g_maxYs, &les_ys, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    g_maxYs = les_ys;
+#endif
+
+#if MHD_LES
+    MPI_Allreduce(&g_maxDs, &mhd_les_ds, 1, MPI_DOUBLE, MPI_MAX,
+                  MPI_COMM_WORLD);
+    g_maxDs = mhd_les_ds;
+#endif
+
 #if PHYSICS == ResRMHD
     MPI_Allreduce(&g_maxIMEXIter, &nv, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
     g_maxIMEXIter = nv;
@@ -361,6 +386,15 @@ int Integrate(Data *d, timeStep *Dts, Grid *grid)
   g_maxMach = 0.0;
   g_maxRiemannIter = 0;
   g_maxRootIter = 0;
+
+#if LES
+  g_maxCs = 0;
+  g_maxYs = 0;
+#endif
+
+#if MHD_LES
+  g_maxDs = 0;
+#endif
 
 #if COOLING != NO
   if ((g_stepNumber - 1) % 2 == 1) {

@@ -4,15 +4,23 @@
 #define LES_FMIN 0.5 /* blah blah  */
 #endif
 
-static double Cs = 0.1, Ys = 0.1;
+static double Cs = INIT_CS, Ys = INIT_DS;
 
 double get_LES_Cs() { return Cs; }
 
 double get_LES_Ys() { return Ys; }
 
-void set_LES_Cs(double cs) { Cs = cs > 0 ? cs : 0; }
+void set_LES_Cs(double cs) {
+  Cs = cs > 0 ? MIN(cs, 1) : 0;
+  // printf("CS: %lf | cs: %lf\n", Cs, cs);
+  g_maxCs = MAX(g_maxCs, Cs);
+}
 
-void set_LES_Ys(double ys) { Ys = ys > 0 ? ys : 0; }
+void set_LES_Ys(double ys) {
+  Ys = ys;
+  // printf("YS: %lf | ys: %lf\n", Ys, ys);
+  g_maxYs = MAX(g_maxYs, Ys);
+}
 
 #define ITOT_LOOP_FILTERED(i) for ((i) = 0; (i) < NX1_TOT; (i) += 2)
 #define JTOT_LOOP_FILTERED(j) for ((j) = 0; (j) < NX2_TOT; (j) += 2)
@@ -36,7 +44,7 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
 {
   int i, j, k, n, nv;
   const double c13 = (1.0) / (3.0);
-  double nu_t;
+  double nu_t, nu_t_trace;
   double dx, dy, dz;
   double inv_dx1, inv_dx2, inv_dx3;
   double *x1 = grid->x[IDIR], *dx1 = grid->dx[IDIR];
@@ -49,21 +57,22 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
   double dxBx, dxBy, dxBz, dyBx, dyBy, dyBz, dzBx, dzBy, dzBz;
 
   double S, Sxx, Syy, Szz, Sxy, Sxz, Syz;
-  double divV, divr, scrh;
+  double divr;
   double wx, wy, wz, qx, qy, qz;
   double fmx, fmy, fmz, fe;
-  // double dtdx, dtdy, dtdz;
   double nu_max;
-  double Cs = 0.1, Csdl2, dH;
+  double Cs_, Ys_, Csdl2, dH;
   double Prandtl = 0.71;
 
   // static double ***H;
 
+#if DYNAMIC_PROCEDURE
   static double Lu_xx, Lu_yy, Lu_zz, Lu_xy, Lu_xz, Lu_yz;
   static double Mu_xx, Mu_xy, Mu_xz, Mu_yx, Mu_yy, Mu_yz, Mu_zx, Mu_zy, Mu_zz;
 
   static double ALPHA_Y;
 
+#endif
   LES_alpha_ctx *ctx = les_alpha_create();
 
   double ***Vx = d->Vc[VX1];
@@ -107,8 +116,6 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
 
   // pr = d->Vc[PRS];
 
-  Csdl2 = Cs * Cs * pow(dx * dy * dz, 2.0 / 3.0);
-
   nu_max = 1.e-12;
 
   /* ----------------------------------------------
@@ -116,6 +123,7 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
        ---------------------------------------------- */
 
   init_les_alpha_ctx(ctx, d, grid);
+#if DYNAMIC_PROCEDURE
 
   int i_h, j_h, k_h;
 
@@ -125,14 +133,14 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
   KTOT_LOOP_FILTERED(k_h) {
     JTOT_LOOP_FILTERED(j_h) {
       ITOT_LOOP_FILTERED(i_h) {
-        double divider = 1.0;
+        double divider = 0.0;
 
         double rho_f = 0, rhovx_f = 0, rhovy_f = 0, rhovz_f = 0, Bx_f = 0,
                By_f = 0, Bz_f = 0;
         double BxBx_f = 0, ByBy_f = 0, BzBz_f = 0, BxBy_f = 0, BxBz_f = 0,
                ByBz_f = 0;
 
-        double divV_f = 0, Sxx_f = 0, Sxy_f = 0, Sxz_f = 0, Syy_f = 0,
+        double divV_f = 0, S_f = 0, Sxx_f = 0, Sxy_f = 0, Sxz_f = 0, Syy_f = 0,
                Syz_f = 0, Szz_f = 0;
 
         double Lu_Vxx_f = 0, Lu_Vxy_f = 0, Lu_Vxz_f = 0, Lu_Vyy_f = 0,
@@ -211,6 +219,7 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
               Syy_f += rho_ * les_alpha_get_Syy(ctx) * local_volume;
               Syz_f += rho_ * les_alpha_get_Syz(ctx) * local_volume;
               Szz_f += rho_ * les_alpha_get_Szz(ctx) * local_volume;
+              S_f += rho_f * les_alpha_get_S(ctx) * local_volume;
               divV_f += rho_f * les_alpha_get_divV(ctx) * local_volume;
 
               A_f += LES_Alpha(ctx, i_shift, j_shift, k_shift) * local_volume;
@@ -236,33 +245,31 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
               Azz_f +=
                   LES_Alpha_zz(ctx, i_shift, j_shift, k_shift) * local_volume;
 
-              Y_f += LES_Alpha(ctx, i_shift, j_shift, k_shift) *
-                     (les_alpha_get_divV(ctx)) * local_volume;
+              Y_f += rho_ * LES_Alpha(ctx, i_shift, j_shift, k_shift) *
+                     (les_alpha_get_S(ctx))*local_volume;
 
               Mu_Sxx_f +=
-                  LES_Alpha_xx(ctx, i_shift, j_shift, k_shift) *
+                  LES_Alpha_xx(ctx, i_shift, j_shift, k_shift) * rho_ *
                   (les_alpha_get_Sxx(ctx) - c13 * les_alpha_get_divV(ctx)) *
                   local_volume;
-              Mu_Sxy_f += LES_Alpha_xy(ctx, i_shift, j_shift, k_shift) *
-                          (les_alpha_get_Sxy(ctx)) * local_volume;
-              Mu_Sxz_f += LES_Alpha_xz(ctx, i_shift, j_shift, k_shift) *
-                          (les_alpha_get_Sxz(ctx)) * local_volume;
-
-              Mu_Syx_f += LES_Alpha_yx(ctx, i_shift, j_shift, k_shift) *
-                          (les_alpha_get_Sxy(ctx)) * local_volume;
+              Mu_Sxy_f += LES_Alpha_xy(ctx, i_shift, j_shift, k_shift) * rho_ *
+                          (les_alpha_get_Sxy(ctx))*local_volume;
+              Mu_Sxz_f += LES_Alpha_xz(ctx, i_shift, j_shift, k_shift) * rho_ *
+                          (les_alpha_get_Sxz(ctx))*local_volume;
+              Mu_Syx_f += LES_Alpha_yx(ctx, i_shift, j_shift, k_shift) * rho_ *
+                          (les_alpha_get_Sxy(ctx))*local_volume;
               Mu_Syy_f +=
-                  LES_Alpha_yy(ctx, i_shift, j_shift, k_shift) *
+                  LES_Alpha_yy(ctx, i_shift, j_shift, k_shift) * rho_ *
                   (les_alpha_get_Syy(ctx) - c13 * les_alpha_get_divV(ctx)) *
                   local_volume;
-              Mu_Syz_f += LES_Alpha_yz(ctx, i_shift, j_shift, k_shift) *
-                          (les_alpha_get_Syz(ctx)) * local_volume;
-
-              Mu_Szx_f += LES_Alpha_zx(ctx, i_shift, j_shift, k_shift) *
-                          (les_alpha_get_Sxz(ctx)) * local_volume;
-              Mu_Szy_f += LES_Alpha_zy(ctx, i_shift, j_shift, k_shift) *
-                          (les_alpha_get_Syz(ctx)) * local_volume;
+              Mu_Syz_f += LES_Alpha_yz(ctx, i_shift, j_shift, k_shift) * rho_ *
+                          (les_alpha_get_Syz(ctx))*local_volume;
+              Mu_Szx_f += LES_Alpha_zx(ctx, i_shift, j_shift, k_shift) * rho_ *
+                          (les_alpha_get_Sxz(ctx))*local_volume;
+              Mu_Szy_f += LES_Alpha_zy(ctx, i_shift, j_shift, k_shift) * rho_ *
+                          (les_alpha_get_Syz(ctx))*local_volume;
               Mu_Szz_f +=
-                  LES_Alpha_zz(ctx, i_shift, j_shift, k_shift) *
+                  LES_Alpha_zz(ctx, i_shift, j_shift, k_shift) * rho_ *
                   (les_alpha_get_Szz(ctx) - c13 * les_alpha_get_divV(ctx)) *
                   local_volume;
 
@@ -271,22 +278,32 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
           }
         }
 
+        if (divider == 0.0)
+          divider += 1e-20;
+
         divider = 1.0 / divider;
 
         rho_f *= divider;
+
+        if (rho_f == 0.0)
+          rho_f += 1e-20;
+
         double inv_rho_f = 1.0 / rho_f;
 
         rhovx_f *= divider;
         rhovy_f *= divider;
         rhovz_f *= divider;
 
-        Sxx_f *= inv_rho_f;
-        Sxy_f *= inv_rho_f;
-        Sxz_f *= inv_rho_f;
-        Syy_f *= inv_rho_f;
-        Syz_f *= inv_rho_f;
-        Szz_f *= inv_rho_f;
-        divV_f *= inv_rho_f;
+        Sxx_f *= inv_rho_f * divider;
+        Sxy_f *= inv_rho_f * divider;
+        Sxz_f *= inv_rho_f * divider;
+        Syy_f *= inv_rho_f * divider;
+        Syz_f *= inv_rho_f * divider;
+        Szz_f *= inv_rho_f * divider;
+        S_f *= inv_rho_f * divider;
+        divV_f *= inv_rho_f * divider;
+
+        Y_f *= inv_rho_f * divider;
 
 #if PHYSICS == MHD || PHYSICS == RMHD
         Bx_f *= divider;
@@ -301,12 +318,12 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
         ByBz_f *= divider;
 #endif
 
-        Lu_Vxx_f *= divider;
-        Lu_Vxy_f *= divider;
-        Lu_Vxz_f *= divider;
-        Lu_Vyy_f *= divider;
-        Lu_Vyz_f *= divider;
-        Lu_Vzz_f *= divider;
+        Lu_Vxx_f *= inv_rho_f * divider;
+        Lu_Vxy_f *= inv_rho_f * divider;
+        Lu_Vxz_f *= inv_rho_f * divider;
+        Lu_Vyy_f *= inv_rho_f * divider;
+        Lu_Vyz_f *= inv_rho_f * divider;
+        Lu_Vzz_f *= inv_rho_f * divider;
 
         A_f *= divider;
         Axx_f *= divider;
@@ -319,17 +336,15 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
         Azy_f *= divider;
         Azz_f *= divider;
 
-        Y_f *= divider;
-
-        Mu_Sxx_f *= divider;
-        Mu_Sxy_f *= divider;
-        Mu_Sxz_f *= divider;
-        Mu_Syx_f *= divider;
-        Mu_Syy_f *= divider;
-        Mu_Syz_f *= divider;
-        Mu_Szx_f *= divider;
-        Mu_Szy_f *= divider;
-        Mu_Szz_f *= divider;
+        Mu_Sxx_f *= inv_rho_f * divider;
+        Mu_Sxy_f *= inv_rho_f * divider;
+        Mu_Sxz_f *= inv_rho_f * divider;
+        Mu_Syx_f *= inv_rho_f * divider;
+        Mu_Syy_f *= inv_rho_f * divider;
+        Mu_Syz_f *= inv_rho_f * divider;
+        Mu_Szx_f *= inv_rho_f * divider;
+        Mu_Szy_f *= inv_rho_f * divider;
+        Mu_Szz_f *= inv_rho_f * divider;
 
 #if PHYSICS == MHD || PHYSICS == RMHD
         Lu_xx =
@@ -349,6 +364,7 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
 
         Lu_yz =
             Lu_Vyz_f - rhovy_f * rhovz_f * inv_rho_f - (ByBz_f - By_f * Bz_f);
+
 #else
         Lu_xx = Lu_Vxx_f - rhovx_f * rhovx_f * inv_rho_f;
         Lu_yy = Lu_Vyy_f - rhovy_f * rhovy_f * inv_rho_f;
@@ -370,7 +386,7 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
         Mu_zy = Azy_f * (Syz_f)-Mu_Szy_f;
         Mu_zz = Azz_f * (Szz_f - c13 * divV_f) - Mu_Szz_f;
 
-        ALPHA_Y = A_f * divV_f - Y_f;
+        ALPHA_Y = A_f * S_f - Y_f;
 
         double local_volume = dx1[i_h] * dx2[j_h] * dx3[k_h];
 
@@ -389,13 +405,20 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
         Ys_averaged_numerator +=
             (Lu_xx * Lu_xx + Lu_yy * Lu_yy + Lu_zz * Lu_zz) * local_volume;
 
-        Ys_averaged_denominator += (A_f * divV_f - Y_f) * local_volume;
+        Ys_averaged_denominator += (ALPHA_Y)*local_volume;
       }
     }
   }
 
-  set_LES_Cs(Cs_averaged_numerator / Cs_averaged_denominator);
-  set_LES_Ys(Ys_averaged_numerator / Ys_averaged_denominator);
+  set_LES_Cs(Cs_averaged_numerator / (Cs_averaged_denominator + 1e-10));
+
+  // printf(
+  //     "Ys: %.10e Ys_averaged_numerator: %.10e Ys_averaged_denominator:
+  //     %.10e\n", Ys_averaged_numerator / (Ys_averaged_denominator + 1e-10),
+  //     Ys_averaged_numerator, Ys_averaged_denominator);
+
+  set_LES_Ys(Ys_averaged_numerator / (Ys_averaged_denominator + 1e-10));
+#endif
 
   if (g_dir == IDIR) {
 
@@ -427,16 +450,20 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
 
 #if GEOMETRY == CARTESIAN
 
-      nu_max = MAX(nu_max,
-                   MAX(les_alpha_get_nut(ctx), les_alpha_get_nut_trace(ctx)));
-      dcoeff[i] = nu_t;
+      Cs_ = get_LES_Cs();
+      Ys_ = get_LES_Ys();
 
-      fmx = -2.0 * LES_Alpha_xx(ctx, i, j, k) *
+      nu_t = Cs_ * les_alpha_get_nut(ctx);
+      nu_t_trace = Ys_ * les_alpha_get_nut_trace(ctx);
+
+      nu_max = MAX(nu_max, MAX(nu_t, nu_t_trace));
+      dcoeff[i] = fabs(nu_max);
+
+      fmx = -2.0 * Cs_ * LES_Alpha_xx(ctx, i, j, k) *
                 (les_alpha_get_Sxx(ctx) - c13 * les_alpha_get_divV(ctx)) +
-            2.0 * c13 * LES_Alpha(ctx, i, j, k) * les_alpha_get_divV(ctx);
-      fmy = -2.0 * LES_Alpha_yx(ctx, i, j, k) * les_alpha_get_Sxy(ctx);
-      fmz = -2.0 * LES_Alpha_zx(ctx, i, j, k) * les_alpha_get_Sxz(ctx);
-      // fmz = -2.0 * LES_Alpha_zx(ctx, i, j, k) * les_alpha_get_Sxz(ctx);
+            2.0 * c13 * Ys_ * LES_Alpha(ctx, i, j, k) * les_alpha_get_S(ctx);
+      fmy = -2.0 * Cs_ * LES_Alpha_xy(ctx, i, j, k) * les_alpha_get_Sxy(ctx);
+      fmz = -2.0 * Cs_ * LES_Alpha_xz(ctx, i, j, k) * les_alpha_get_Sxz(ctx);
 
       ViS[i][MX1] = 0.0;
       ViS[i][MX2] = 0.0;
@@ -494,17 +521,20 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
          ------------------------------------------ */
 
 #if GEOMETRY == CARTESIAN
-      nu_max = MAX(nu_max,
-                   MAX(les_alpha_get_nut(ctx), les_alpha_get_nut_trace(ctx)));
-      dcoeff[j] = nu_t;
+      Cs_ = get_LES_Cs();
+      Ys_ = get_LES_Ys();
 
-      scrh = 2.0 * vi[RHO] * nu_t;
+      nu_t = Cs_ * les_alpha_get_nut(ctx);
+      nu_t_trace = Ys_ * les_alpha_get_nut_trace(ctx);
 
-      fmx = -2.0 * LES_Alpha_xy(ctx, i, j, k) * les_alpha_get_Sxy(ctx);
-      fmy = -2.0 * LES_Alpha_yy(ctx, i, j, k) *
+      nu_max = MAX(nu_max, MAX(nu_t, nu_t_trace));
+      dcoeff[j] = fabs(nu_max);
+
+      fmx = -2.0 * Cs_ * LES_Alpha_yz(ctx, i, j, k) * les_alpha_get_Sxy(ctx);
+      fmy = -2.0 * Cs_ * LES_Alpha_yy(ctx, i, j, k) *
                 (les_alpha_get_Syy(ctx) - c13 * les_alpha_get_divV(ctx)) +
-            2.0 * c13 * LES_Alpha(ctx, i, j, k) * les_alpha_get_divV(ctx);
-      fmz = -2.0 * LES_Alpha_zy(ctx, i, j, k) * les_alpha_get_Syz(ctx);
+            2.0 * c13 * Ys_ * LES_Alpha(ctx, i, j, k) * les_alpha_get_S(ctx);
+      fmz = -2.0 * Cs_ * LES_Alpha_yz(ctx, i, j, k) * les_alpha_get_Syz(ctx);
 
       ViS[j][MX1] = 0.0;
       ViS[j][MX2] = 0.0;
@@ -563,17 +593,20 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
          ------------------------------------------ */
 
 #if GEOMETRY == CARTESIAN
-      nu_max = MAX(nu_max,
-                   MAX(les_alpha_get_nut(ctx), les_alpha_get_nut_trace(ctx)));
-      dcoeff[k] = nu_t;
+      Cs_ = get_LES_Cs();
+      Ys_ = get_LES_Ys();
 
-      scrh = 2.0 * vi[RHO] * nu_t;
+      nu_t = Cs_ * les_alpha_get_nut(ctx);
+      nu_t_trace = Ys_ * les_alpha_get_nut_trace(ctx);
 
-      fmx = -2.0 * LES_Alpha_xz(ctx, i, j, k) * les_alpha_get_Sxz(ctx);
-      fmy = -2.0 * LES_Alpha_yz(ctx, i, j, k) * les_alpha_get_Syz(ctx);
-      fmz = -2.0 * LES_Alpha_zz(ctx, i, j, k) *
+      nu_max = MAX(nu_max, MAX(nu_t, nu_t_trace));
+      dcoeff[k] = fabs(nu_max);
+
+      fmx = -2.0 * Cs_ * LES_Alpha_zx(ctx, i, j, k) * les_alpha_get_Sxz(ctx);
+      fmy = -2.0 * Cs_ * LES_Alpha_zy(ctx, i, j, k) * les_alpha_get_Syz(ctx);
+      fmz = -2.0 * Cs_ * LES_Alpha_zz(ctx, i, j, k) *
                 (les_alpha_get_Szz(ctx) - c13 * les_alpha_get_divV(ctx)) +
-            2.0 * c13 * LES_Alpha(ctx, i, j, k) * les_alpha_get_divV(ctx);
+            2.0 * c13 * Ys_ * LES_Alpha(ctx, i, j, k) * les_alpha_get_S(ctx);
 
       ViS[k][MX1] = 0.0;
       ViS[k][MX2] = 0.0;
