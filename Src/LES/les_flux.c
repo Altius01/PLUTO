@@ -318,12 +318,12 @@ void LES_ViscousFluxNew(const Data *d, double **ViF, double **ViS,
         ByBz_f *= divider;
 #endif
 
-        Lu_Vxx_f *= inv_rho_f * divider;
-        Lu_Vxy_f *= inv_rho_f * divider;
-        Lu_Vxz_f *= inv_rho_f * divider;
-        Lu_Vyy_f *= inv_rho_f * divider;
-        Lu_Vyz_f *= inv_rho_f * divider;
-        Lu_Vzz_f *= inv_rho_f * divider;
+        Lu_Vxx_f *= divider;
+        Lu_Vxy_f *= divider;
+        Lu_Vxz_f *= divider;
+        Lu_Vyy_f *= divider;
+        Lu_Vyz_f *= divider;
+        Lu_Vzz_f *= divider;
 
         A_f *= divider;
         Axx_f *= divider;
